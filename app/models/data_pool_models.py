@@ -2,24 +2,38 @@ from os import path, makedirs
 import enum
 from datetime import datetime
 from sqlalchemy import Enum, UniqueConstraint
-from app import db
-from flask import current_app as c_app
+from app import app, db
+from flask import current_app as app
 import nibabel as nib
+
+from .config import DATE_FORMAT, DATETIME_FORMAT
 
 
 class StatusEnum(enum.Enum):
-    new = 'new'
-    open_for_segmentation = 'open_for_segmentation'
-    assigned = 'assigned'
-    submitted = 'submitted'
-    rejected = 'rejected'
-    valid = 'valid'
+    created = 'Created'
+    queued = 'Queued'
+    assigned = 'Assigned'
+    submitted = 'Submitted'
+    rejected = 'Rejected'
+    accepted = 'Accepted'
+
+    def as_dict(self):
+        return dict(
+            name=self.name,
+            value=self.value
+        )
 
 
 class SplitEnum(enum.Enum):
-    train = 'train'
-    validation = 'validation'
-    test = 'test'
+    train = 'Train'
+    validation = 'Validation'
+    test = 'Test'
+
+    def as_dict(self):
+        return dict(
+            name=self.name,
+            value=self.value
+        )
 
 
 class Message(db.Model):
@@ -36,7 +50,7 @@ class Message(db.Model):
     def as_dict(self):
         return dict(
             user=self.user.as_dict(),
-            date=self.date,
+            date=self.date.strftime(DATETIME_FORMAT) if self.date is not None else None,
             message=self.message
         )
 
@@ -50,6 +64,13 @@ class Modality(db.Model):
 
     project = db.relationship('project_models.Project', back_populates='modalities')
 
+    def as_dict(self):
+        return dict(
+            id=self.id,
+            name=self.name,
+            project_id=self.project_id
+        )
+
 
 class ContrastType(db.Model):
     __tablename__ = 'contrast_type'
@@ -60,6 +81,12 @@ class ContrastType(db.Model):
 
     project = db.relationship('project_models.Project', back_populates='contrast_types')
 
+    def as_dict(self):
+        return dict(
+            id=self.id,
+            name=self.name,
+            project_id=self.project_id
+        )
 
 class DataPool(db.Model):
     __tablename__ = 'data_pool'
@@ -80,10 +107,19 @@ class DataPool(db.Model):
 
     def __get_fn__(self):
         assert self.id != None, 'you need to flush or commit the data pool object before accessing nifti data'
-        basepath = path.join(c_app.config['DATA_PATH'], self.project.short_name)
-        if not path.exists(basepath):
-            makedirs(basepath, exist_ok=True)
-        return path.join(basepath, f'{self.id}.nii.gz')
+
+        image_path = None
+
+        if self.type == 'image':
+            image_path = self.project.get_image_path(image_type = 'raw', model_id = None, image_id = self.id)
+        elif self.type == 'manual_segmentation':
+            image_path = self.project.get_image_path(image_type = self.type, model_id = None, image_id = self.id)
+        elif self.type == 'automatic_segmentation':
+            image_path = self.project.get_image_path(image_type = self.type, model_id = self.model_id, image_id = self.id)
+        else:
+            app.logger.error(f"Unrecognized DataPool type {self.type}")
+
+        return image_path
 
     def __get_nii__(self):
         return nib.load(self.__get_fn__())
@@ -94,12 +130,10 @@ class DataPool(db.Model):
     
     nii = property(__get_nii__, __set_nii__)
 
-
-
 class Image(DataPool):
     __tablename__ = 'data_pool_images'
     id = db.Column(db.Integer, db.ForeignKey('data_pool.id'), primary_key=True)
-    name = db.Column(db.Unicode(255), nullable=False, server_default='', unique=True)
+    name = db.Column(db.Unicode(255), nullable=False, server_default='')
 
     institution = db.Column(db.Unicode(255), nullable=True, server_default='')
     accession_number = db.Column(db.Unicode(255), nullable=True, server_default='')
@@ -151,6 +185,14 @@ class Image(DataPool):
         result['project'] = self.project.long_name
         result['modality'] = '' if self.modality is None else self.modality.name
         result['contrast_type'] = '' if self.contrast_type is None else self.contrast_type.name
+
+        result['patient_dob'] = self.patient_dob.strftime(DATE_FORMAT) if self.patient_dob is not None else None
+        result['study_date'] = self.study_date.strftime(DATETIME_FORMAT) if self.study_date is not None else None
+
+        # Fields from DataPool.__table__.columns
+        result['insert_date'] = self.insert_date.strftime(DATETIME_FORMAT) if self.insert_date is not None else None
+        result['last_updated'] = self.last_updated.strftime(DATETIME_FORMAT) if self.last_updated is not None else None
+
         return result
 
     __mapper_args__ = {
@@ -164,7 +206,7 @@ class ManualSegmentation(DataPool):
     image_id = db.Column(db.Integer, db.ForeignKey('data_pool_images.id', ondelete='CASCADE'),
                          nullable=False, unique=True)
 
-    status = db.Column(Enum(StatusEnum), nullable=False, default='new')
+    status = db.Column(Enum(StatusEnum), nullable=False, default='created')
     assignee_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     assigned_date = db.Column(db.DateTime, nullable=True)
     validated_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
@@ -190,12 +232,31 @@ class ManualSegmentation(DataPool):
         if self.status is not None:
             result['status'] = self.status.value
         result['messages'] = [m.as_dict() for m in self.messages]
+
+        result['assigned_date'] = self.assigned_date.strftime(DATETIME_FORMAT) if self.assigned_date is not None else None
+        result['validation_date'] = self.validation_date.strftime(DATETIME_FORMAT) if self.validation_date is not None else None
+
+        # Fields from DataPool.__table__.columns
+        result['insert_date'] = self.insert_date.strftime(DATETIME_FORMAT) if self.insert_date is not None else None
+        result['last_updated'] = self.last_updated.strftime(DATETIME_FORMAT) if self.last_updated is not None else None
+
         return result
 
     __mapper_args__ = {
         'polymorphic_identity': 'manual_segmentation',
     }
 
+class AutomaticSegmentationModel(db.Model):
+    __tablename__ = 'data_pool_automatic_segmentation_models'
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False, )
+
+    # Relationships
+    project = db.relationship('project_models.Project', back_populates='automatic_segmentation_models')
+
+    def as_dict(self):
+        return dict(id = self.id,
+                    project_id = self.project_id)
 
 class AutomaticSegmentation(DataPool):
     __tablename__ = 'data_pool_automatic_segmentations'
@@ -203,15 +264,19 @@ class AutomaticSegmentation(DataPool):
     image_id = db.Column(db.Integer, db.ForeignKey('data_pool_images.id', ondelete='CASCADE'),
                          nullable=False, unique=True)
 
-    # model_id     = db.Column(db.Integer, db.ForeignKey('models.id'), nullable=True)
+    model_id = db.Column(db.Integer, db.ForeignKey('data_pool_automatic_segmentation_models.id'), nullable=False)
 
     # Relationships
-    image = db.relationship('Image', foreign_keys=[image_id],
-                            uselist=False, back_populates='automatic_segmentation')
+    image = db.relationship('Image', foreign_keys=[image_id], uselist=False, back_populates='automatic_segmentation')
 
     def as_dict(self):
         result = {c.name: getattr(self, c.name) for c in
                   DataPool.__table__.columns + AutomaticSegmentation.__table__.columns}
+
+        # Fields from DataPool.__table__.columns
+        result['insert_date'] = self.insert_date.strftime(DATETIME_FORMAT) if self.insert_date is not None else None
+        result['last_updated'] = self.last_updated.strftime(DATETIME_FORMAT) if self.last_updated is not None else None
+
         return result
 
     __mapper_args__ = {

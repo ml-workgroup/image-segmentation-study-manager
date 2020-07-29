@@ -1,36 +1,54 @@
-FROM ubuntu:18.04
+# Debian 10 distribution with Python 3.8.4 installed
+FROM python:3.8.4-slim
 MAINTAINER Hinrich Winther <winther.hinrich@mh-hannover.de>
+
+RUN apt-get update
+RUN apt-get install -y \
+    gcc \
+    nginx
+
+EXPOSE 80
 
 WORKDIR /issm
 
-EXPOSE 80
 RUN mkdir -p /data
-COPY . /issm
+
+ADD requirements.txt /issm
+
+RUN pip install -r requirements.txt
+
+# Don't copy the complete current directory in order to make caching work when running docker build
+ADD app /issm/app
+ADD migrations /issm/migrations
+ADD tests /issm/tests
+
+COPY ./*.py ./*.ini Version /issm/
+
 COPY docker/local_settings.py app/local_settings.py
 COPY docker/uwsgi.ini /issm/uwsgi.ini
 COPY docker/nginx.conf /etc/nginx/sites-enabled/default
 
-RUN apt-get update && apt-get install -y \
-    nginx \
-    python3-pip
-RUN pip3 install -r requirements.txt
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
+# reduce image size
+RUN apt-get --purge autoremove -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* 
 
-ENV APP_NAME           ISSM
-ENV SECRET_KEY         "changeme"
-ENV ADMINS             "admin@issm.org"
-ENV EMAIL_SENDER_NAME  Anonymous
-ENV EMAIL_SENDER_EMAIL no-one@anonymous.org
-ENV DEBUG              0
-ENV DATA_PATH          /data/
-ENV DATABASE_URI       sqlite:////data/issm.sqlite
-ENV MAIL_SERVER        ""
-ENV MAIL_PORT          587
-ENV MAIL_USE_SSL       0
-ENV MAIL_USE_TLS       1
-ENV MAIL_USERNAME      ""
-ENV MAIL_PASSWORD      ""
-ENV SENDGRID_API_KEY   ""
+ENV APP_NAME=ISSM \
+	SECRET_KEY="changeme" \ 
+	ADMINS="admin@issm.org" \
+	EMAIL_SENDER_NAME=Anonymous \
+	EMAIL_SENDER_EMAIL=no-one@anonymous.org \
+	DEBUG=0 \
+	DATA_PATH=/data/ \
+	DATABASE_URI=sqlite:////data/issm.sqlite \
+	MAIL_SERVER="" \
+	MAIL_PORT=587 \
+	MAIL_USE_SSL=0 \
+	MAIL_USE_TLS=1 \
+	MAIL_USERNAME="" \
+	MAIL_PASSWORD="" \
+	SENDGRID_API_KEY="" \
+    VERSION=
 
 ENTRYPOINT uwsgi --ini /issm/uwsgi.ini && \
            /etc/init.d/nginx start && \

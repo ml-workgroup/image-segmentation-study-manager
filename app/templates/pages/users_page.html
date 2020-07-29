@@ -4,7 +4,8 @@
 <script type="text/javascript" class="init">
     $(document).ready(function () {
         let datatableDefinition = {
-            ajax: {url: "/data/all_users"},
+            ajax: {url: "/api/user/all",
+            dataSrc: "users"},
             columns: [
                 {name: 'First Name', data: 'first_name'},
                 {name: 'Last Name', data: 'last_name'},
@@ -12,7 +13,15 @@
                 {
                     data: null,
                     render: function (data, type, row) {
-                        return '<button class="btn btn-add deleteUserButton"><i class="fa fa-trash" style="font-size:36px;"></i></button>'
+                        {% if is_technical_admin %}
+                            if(data.id != user_id) {
+                                return '<button class="btn btn-add deleteUserButton"><i class="fa fa-trash" style="font-size:36px;"></i></button>'
+                            } else {
+                                return "";
+                            }
+                        {% else %}
+                            return "";
+                        {% endif %}
                     }
                 },
             ],
@@ -28,12 +37,11 @@
                 console.log(userObject);
 
                 $.ajax({
-                    beforeSend: function (request) {
-                        request.setRequestHeader("user_id", userObject["id"]);
-                    },
-                    url: '/data/delete_user',
+                    url: '/api/user?id=' + userObject["id"],
+                    type: 'DELETE',
                     success: function (data) {
-                        location.reload();
+                        $('#userDatatable').DataTable().ajax.reload();
+                        //location.reload();
                     },
                     error: function (e) {
                         console.log(e);
@@ -62,7 +70,10 @@
     </thead>
 </table>
 
+{% if is_technical_admin %}
 <button class="btn btn-primary" id="addUserButton">Add User</button>
+{% endif %}
+
 {% endblock %}
 
 {% block forms %}

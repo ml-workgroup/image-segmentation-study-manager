@@ -40,11 +40,11 @@ class User(db.Model, UserMixin):
                                               back_populates='validated_by')
 
     def as_dict(self):
-        result = {c.name: getattr(self, c.name) for c in User.__table__.columns}
+        result = {c.name: getattr(self, c.name) for c in User.__table__.columns if c.name != 'password'}
         return result
 
     def __repr__(self):
-        return f'{self.first_name} {self.last_name} (f{self.email})'
+        return f'{self.first_name} {self.last_name} ({self.email})'
     
     def __eq__(self, other):
         if not isinstance(other, self.__class__):

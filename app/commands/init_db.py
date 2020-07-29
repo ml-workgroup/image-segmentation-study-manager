@@ -6,19 +6,26 @@
 
 import os
 import shutil
+import logging
 
 from flask_script import Command
 
 from flask import current_app as c_app
-from app import db
+from app import app, db
 from app.models.data_pool_models import Image, ManualSegmentation, AutomaticSegmentation
 from app.models.project_models import Project
 from app.models.user_models import User, Role
+
+from app.controllers import user_controller, project_controller, data_pool_controller
 
 from tqdm import trange
 import numpy as np
 import nibabel as nib
 
+logging.getLogger().setLevel(logging.INFO)
+
+admin_role = None
+user_role = None
 
 class InitDbCommand(Command):
     """ Initialize the database."""
@@ -27,45 +34,64 @@ class InitDbCommand(Command):
         init_db()
         print('Database has been initialized.')
 
+#  Adding roles
+def create_roles():
+    global admin_role, user_role
+    admin_role = find_or_create_role('admin', u'Admin')
+    user_role = find_or_create_role('user', u'User')
 
-def init_db():
+def init_db(create_example_data = True):
     """ Initialize the database."""
+
+    # init db file if not existing...
+    db.create_all()
+
+    # reset database (if tables were already existing)
     db.drop_all()
     db.create_all()
-    setup_example_data()
+
+    if create_example_data:
+        setup_example_data()
 
 
 def setup_example_data(n_projects=2, n_images_per_project=50):
     """ Set up example projects with users, images and segmentations """
 
-    # Adding roles
-    admin_role = find_or_create_role('admin', u'Admin')
-    user_role = find_or_create_role('user', u'User')
+    global admin_role, user_role
+
+    if admin_role is None and user_role is None:
+        create_roles()
 
     # Add users
-    admin = find_or_create_user('Admin', 'Admin', 'admin@issm.org', 'admin', [admin_role, user_role])
-    reviewer = find_or_create_user('Reviewer', 'Reviewer', 'reviewer@issm.org', 'reviewer', [user_role])
-    user = find_or_create_user('User', 'User', 'user@issm.org', 'user', [user_role])
+    admin = user_controller.find_or_create_user('Admin', 'Admin', 'admin@issm.org', 'admin', [admin_role, user_role])
+    reviewer = user_controller.find_or_create_user('Reviewer', 'Reviewer', 'reviewer@issm.org', 'reviewer', [user_role])
+    user = user_controller.find_or_create_user('User', 'User', 'user@issm.org', 'user', [user_role])
 
     # Create project sample data
     projects = []
     for project_index in range(n_projects):
-        project = Project(short_name="proj_" + str(project_index),
-                          long_name="Project_" + str(project_index), active=True)
-        project.admins.append(admin)
-        project.reviewers.append(reviewer)
-        project.users.append(user)
-        projects.append(project)
-        db.session.add(project)
 
+        short_name = "proj_" + str(project_index)
+        long_name = "Project_" + str(project_index)
+
+        project = project_controller.create_project(short_name=short_name, long_name=long_name, admins = [admin], reviewers = [reviewer], users = [user])
+
+        projects.append(project)
+
+        automatic_segmentation_model = data_pool_controller.create_automatic_segmentation_model(project_id = project.id)
 
         for i in trange(n_images_per_project, desc='generating sample data'):
-            image = Image(project=project, name=f'Image_{project_index}_{i}')
-            man_seg = ManualSegmentation(project=project, image=image)
-            auto_seg = AutomaticSegmentation(project=project, image=image)
 
-            db.session.add_all([image, man_seg, auto_seg])
-            db.session.flush()
+            image = data_pool_controller.create_image(project = project, name = f'Image_{project_index}_{i}')
+            man_seg = data_pool_controller.create_manual_segmentation(project = project, image_id = image.id)
+            auto_seg = data_pool_controller.create_automatic_segmentation(project = project, image_id = image.id, model_id = automatic_segmentation_model.id)
+
+            # image = Image(project=project, name=f'Image_{project_index}_{i}')
+            # man_seg = ManualSegmentation(project=project, image=image)
+            # auto_seg = AutomaticSegmentation(project=project, image=image)
+
+            # db.session.add_all([image, man_seg, auto_seg])
+            # db.session.flush()
 
             auto_seg.nii = nib.Nifti1Image(np.zeros((100,100,100)), np.eye(4))
             man_seg.nii = nib.Nifti1Image(np.zeros((100,100,100)), np.eye(4))
@@ -74,25 +100,16 @@ def setup_example_data(n_projects=2, n_images_per_project=50):
             db.session.commit()
 
 
+"""
+Find existing role or create new role
+"""
 def find_or_create_role(name, label):
-    """ Find existing role or create new role """
     role = Role.query.filter(Role.name == name).first()
+
     if not role:
         role = Role(name=name, label=label)
         db.session.add(role)
+        db.session.commit()
+
     return role
 
-
-def find_or_create_user(first_name, last_name, email, password, roles=None):
-    """ Find existing user or create new user """
-    user = User.query.filter(User.email == email).first()
-    if not user:
-        user = User(email=email,
-                    first_name=first_name,
-                    last_name=last_name,
-                    password=password,
-                    active=True)
-        if roles:
-            user.roles.extend(roles)
-        db.session.add(user)
-    return user

@@ -2,20 +2,28 @@
 # a Python package so it can be accessed using the 'import' statement.
 
 from datetime import datetime
-import os, re
+import os
+import logging
+
+from flask_script import Manager
 
 from flask import Flask, request
-from flask_script import Manager
 from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail
 from flask_migrate import Migrate, MigrateCommand
-from flask_user import UserManager
 from flask_wtf.csrf import CSRFProtect
+from flask_scss import Scss
+
+from flask_user import UserManager, current_user
 from flask_admin import Admin
+
 from werkzeug.local import LocalProxy
 
-# Instantiate Flask
-app = Flask(__name__)
+logging.getLogger().setLevel(logging.INFO)
+
+app = None
+current_project = None
+user_manager = None
 
 # Instantiate Flask extensions
 csrf_protect = CSRFProtect()
@@ -24,30 +32,17 @@ mail = Mail()
 migrate = Migrate()
 flask_admin = Admin(url='/admin/flask_admin')
 
-
-# add current_project globally
-from app.models.project_models import Project
-id_finder = re.compile('^\/project\/(?P<project_id>\d*)')
-def _get_project():
-    r = id_finder.match(request.path)
-    if not r: # not a valid project path
-        return None
-    if r.group('project_id') == '': # project id not set
-        return None
-    project_id = int(r.group('project_id'))
-    return db.session.query(Project).filter(Project.id == project_id).first()
-current_project = LocalProxy(lambda: _get_project())
-
-# add current_project to template engine
-def _project_context_processor():
-    return dict(current_project=_get_project())
-app.context_processor(_project_context_processor)
-
-
 # Initialize Flask Application
 def create_app(extra_config_settings={}):
     """Create a Flask application.
     """
+
+    global app, current_project, user_manager
+
+    # Instantiate Flask
+    app = Flask(__name__)
+
+    app.logger.info("Created Flask Application")
 
     # Load common settings
     app.config.from_object('app.settings')
@@ -55,6 +50,13 @@ def create_app(extra_config_settings={}):
     app.config.from_object('app.local_settings')
     # Load extra settings from extra_config_settings param
     app.config.update(extra_config_settings)
+
+    # import utils here, because they need the initialized app variable
+    from app import utils
+
+    current_project = LocalProxy(lambda: utils.get_current_project())
+
+    Scss(app, static_dir='app/static', asset_dir='app/assets')
 
     # Setup Flask-SQLAlchemy
     db.init_app(app)
@@ -71,9 +73,16 @@ def create_app(extra_config_settings={}):
     # Setup WTForms CSRFProtect
     csrf_protect.init_app(app)
 
+    # Register REST Api
+    from app.services import register_blueprints as register_api
+    register_api(app, url_prefix="/api", exempt_from_csrf = True, csrf_protect = csrf_protect)
+    csrf_protect
+    
     # Register views
-    from .views import register_blueprints
-    register_blueprints(app)
+    from app.views import register_blueprints as register_view
+    register_view(app, url_prefix="")
+
+    # app.logger.info(app.url_map)
 
     # Define bootstrap_is_hidden_field for flask-bootstrap's bootstrap_wtf.html
     from wtforms.fields import HiddenField
@@ -93,9 +102,53 @@ def create_app(extra_config_settings={}):
     # Setup Flask-User
     user_manager = UserManager(app, db, User)
 
-    @app.context_processor
-    def context_processor():
-        return dict(user_manager=user_manager)
+    # registers all jinja template extensions
+    from app import template_extensions
+
+    # enable CSRF-Protection for all view urls and only exclude /user and /api
+
+    """
+    remove CSRF check from all requests with settings.py
+    via WTF_CSRF_CHECK_DEFAULT to False
+    
+    and only add it to the view requests:
+    """
+    @app.before_request
+    def check_csrf():
+        if not request.path.startswith('/user') and not request.path.startswith('/api'):
+            app.logger.debug(f"CSRF protecting path {request.path}")
+            csrf_protect.protect()
+
+
+    # for key in app.config:
+    #     app.logger.info(f"{key} {app.config[key]}")
+
+    if not app.debug:
+        users = []
+
+        with app.app_context():
+            # init db
+            db.create_all()
+
+            from app.models.user_models import User
+            users = db.session.query(User).all()
+
+            # check if there are already technical users existing (if so, then this is not the first boot)
+            no_technical_admin = False if any(user if any(role.name == 'admin' for role in user.roles) else None for user in users) else True
+
+            app.logger.info(f"No technical admin present? {no_technical_admin}")
+
+            # create default admin if no user exist
+            if no_technical_admin:
+                from app.commands.init_db import create_roles
+                create_roles()
+
+                # create the default flask admin
+                from app.models.user_models import Role
+                from app.controllers import user_controller
+                all_roles = Role.query.all()
+                # app.logger.info(f"Creating admin with attributes: 'Admin', 'Admin', {app.config['ADMIN']}, {app.config['ADMIN_PW']}, {all_roles}")
+                default_admin_user = user_controller.create_user('Admin', 'Admin', app.config['ADMIN'], app.config['ADMIN_PW'], all_roles)
 
     return app
 
@@ -116,7 +169,7 @@ def init_email_error_handler(app):
     secure = () if app.config.get('MAIL_USE_TLS') else None
 
     # Retrieve app settings from app.config
-    to_addr_list = app.config['ADMINS']
+    to_addr_list = app.config['ADMIN']
     subject = app.config.get('APP_SYSTEM_ERROR_SUBJECT_LINE', 'System Error')
 
     # Setup an SMTP mail handler for error-level messages

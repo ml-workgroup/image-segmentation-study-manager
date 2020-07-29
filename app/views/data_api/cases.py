@@ -1,6 +1,7 @@
 import io
 import json
 import os
+import logging
 from datetime import datetime
 from dateutil.parser import parse as parse_date_string
 import traceback
@@ -108,10 +109,11 @@ def update_case_meta_data(project_id):
     """
 
     data = request.form
-    print('---------------')
-    print(request.data)
-    print(request.form)
-    print('===============')
+    app.logger.info('---------------')
+    app.logger.info(request.data)
+    app.logger.info(request.form)
+    app.logger.info('===============')
+
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
     image_object = request.json
