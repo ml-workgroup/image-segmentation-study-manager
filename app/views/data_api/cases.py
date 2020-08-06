@@ -134,7 +134,7 @@ def update_case_meta_data(project_id):
                 value = datetime.strptime(image_object[column_name], '%a, %d %b %Y %H:%M:%S %Z')
             setattr(image, column_name, value)
 
-    # Contrast type and modality
+    # split type, Contrast type and modality
     modality_name = image_object["modality"]
     modality = db.session.query(Modality).filter(Modality.name == modality_name).filter(
         Modality.project_id == image.project_id).first()
@@ -145,6 +145,12 @@ def update_case_meta_data(project_id):
         ContrastType.project_id == image.project_id).first()
 
     image.contrast_type = contrast_type
+    
+    split_type_name = image_object["split_type"]
+    split_type = db.session.query(SplitType).filter(SplitType.name == split_type_name).filter(
+        SplitType.project_id == image.project_id).first()
+
+    image.split_type = split_type
 
     # Update values for segmentation
     for column in ManualSegmentation.__table__.columns:

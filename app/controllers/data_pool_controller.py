@@ -11,7 +11,61 @@ from app import db, current_project
 from app.models.config import DATE_FORMAT, DATETIME_FORMAT
 from app.models.project_models import Project
 from app.models.user_models import User
-from app.models.data_pool_models import StatusEnum, SplitEnum, Image, ManualSegmentation, AutomaticSegmentation, AutomaticSegmentationModel, Message, Modality, ContrastType
+from app.models.data_pool_models import StatusEnum, SplitType, Image, ManualSegmentation, AutomaticSegmentation, AutomaticSegmentationModel, Message, Modality, ContrastType
+
+# SPLIT_TYPE
+
+def get_all_split_types_for_project(project_id = None):
+
+    if project_id is None:
+        return None
+
+    split_types = SplitType.query.filter(SplitType.project_id == project_id).all()
+
+    return split_types
+
+"""
+Finds an existing split type object in the database by it's id
+
+If no id is provided, log's error and returns None
+"""
+def find_split_type(id = None, project_id = None, name = None):
+
+    if id:
+        split_type = SplitType.query.get(id)
+    elif project_id is not None and name is not None:
+        split_type = SplitType.query.filter(SplitType.project_id == project_id).filter(SplitType.name == name).first()
+    else:
+        app.logger.error("No parameters given for split type search")
+        
+        return None
+
+    return split_type
+
+"""
+Creates a split type object with the given parameters
+"""
+def create_split_type(name = None, project_id = None):
+
+    split_type = SplitType(name = name, project_id = project_id)
+
+    db.session.add(split_type)
+    db.session.commit()
+
+    return split_type
+
+"""
+Deletes an existing split type object
+"""
+def delete_split_type(split_type):
+
+    if split_type:
+        db.session.delete(split_type)
+        db.session.commit()
+
+    return split_type
+
+# END SPLIT_TYPE
 
 # MODALITY
 
@@ -74,9 +128,9 @@ def get_all_contrast_types_for_project(project_id = None):
     if project_id is None:
         return None
 
-    modalities = ContrastType.query.filter(ContrastType.project_id == project_id).all()
+    contrast_types = ContrastType.query.filter(ContrastType.project_id == project_id).all()
 
-    return modalities
+    return contrast_types
 
 """
 Finds an existing contrast type object in the database by it's id
@@ -201,6 +255,11 @@ def update_image_from_map(image, meta_data):
                 value = datetime.strptime(value, DATETIME_FORMAT)
 
             setattr(image, column_name, value)
+    
+    # Contrast type and modality
+    if "split_type" in meta_data:
+        split_type = find_split_type(id = meta_data["split_type"])
+        image.split_type = split_type
 
     # Contrast type and modality
     if "modality" in meta_data:

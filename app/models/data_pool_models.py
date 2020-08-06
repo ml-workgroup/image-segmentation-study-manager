@@ -35,6 +35,21 @@ class SplitEnum(enum.Enum):
             value=self.value
         )
 
+class SplitType(db.Model):
+    __tablename__ = 'split_type'
+    __table_args__ = (UniqueConstraint('name', 'project_id'),)
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.Unicode(255))
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False, )
+
+    project = db.relationship('project_models.Project', back_populates='split_types')
+
+    def as_dict(self):
+        return dict(
+            id=self.id,
+            name=self.name,
+            project_id=self.project_id
+        )
 
 class Message(db.Model):
     __tablename__ = 'message'
@@ -150,9 +165,9 @@ class Image(DataPool):
 
     patient_name = db.Column(db.Unicode(255), nullable=True, server_default='')
     patient_dob = db.Column(db.Date, nullable=True, default=datetime.now)
-    split = db.Column(Enum(SplitEnum), nullable=True)
     body_region = db.Column(db.Unicode(255), nullable=True, server_default='')
 
+    split_type_id = db.Column(db.ForeignKey('split_type.id'), nullable=True, server_default='')
     contrast_type_id = db.Column(db.ForeignKey('contrast_type.id'), nullable=True, server_default='')
     modality_id = db.Column(db.ForeignKey('modality.id'), nullable=True, server_default='')
 
@@ -171,6 +186,7 @@ class Image(DataPool):
                                              back_populates='image',
                                              cascade='all, delete-orphan',
                                              passive_deletes=True)
+    split_type = db.relationship('SplitType', foreign_keys=[split_type_id], uselist=False)
     contrast_type = db.relationship('ContrastType', foreign_keys=[contrast_type_id], uselist=False)
     modality = db.relationship('Modality', foreign_keys=[modality_id], uselist=False)
 
@@ -180,9 +196,8 @@ class Image(DataPool):
             result['manual_segmentation'] = self.manual_segmentation.as_dict()
         if self.automatic_segmentation is not None:
             result['automatic_segmentation'] = self.automatic_segmentation.as_dict()
-        if result['split'] is not None:
-            result['split'] = self.split.value
         result['project'] = self.project.long_name
+        result['split_type'] = '' if self.split_type is None else self.split_type.name
         result['modality'] = '' if self.modality is None else self.modality.name
         result['contrast_type'] = '' if self.contrast_type is None else self.contrast_type.name
 

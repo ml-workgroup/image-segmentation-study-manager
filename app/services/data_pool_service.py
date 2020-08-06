@@ -23,7 +23,7 @@ from nibabel.filebasedimages import SerializableImage
 
 from app import app, db, current_project
 from app.models.config import DATE_FORMAT, DATETIME_FORMAT
-from app.models.data_pool_models import StatusEnum, SplitEnum, Image, ManualSegmentation, AutomaticSegmentation, Message, Modality, ContrastType
+from app.models.data_pool_models import StatusEnum, SplitType, Image, ManualSegmentation, AutomaticSegmentation, Message, Modality, ContrastType
 
 from app.utils import is_project_reviewer, is_project_user, technical_admin_required, project_admin_required, project_reviewer_required, project_user_required
 
@@ -46,14 +46,15 @@ def get_all_image_status_values():
     return jsonify(data)
 
 """
-Get all Split values for Images
+Get all Split values for Images of a project
 """
-@data_pool_service.route("/splitEnum/all")
+@data_pool_service.route("/project/<int:project_id>/split_types")
 @login_required
-def get_all_image_split_values():
+def get_all_image_split_values(project_id):
+    split_types = data_pool_controller.get_all_split_types_for_project(project_id = project_id)
 
     data = {
-        "split_enum": [splitEnum.as_dict() for splitEnum in SplitEnum]
+        "split_types": [split_type.as_dict() for split_type in split_types]
     }
 
     return jsonify(data)

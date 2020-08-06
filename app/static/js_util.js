@@ -109,3 +109,20 @@ function getDeepElementFromObject(deepKey, object) {
 
   return start[1];
 }
+
+/*
+    Checks whether the Datatables Editor could be loaded. If it could not be loaded,
+    false is returned and a warning is displayed stating that the Datatables Editor
+    should be loaded in order to use all functions.
+    */
+function isDatatablesLoaded(display_alert = true) {
+  if (!$.fn.dataTable.Editor) {
+    if (display_alert)
+      alert(
+        'Unfortunately the extension "Datatables Editor" could not be loaded. To use the full functionality of the platform, "Datatables Editor" is required. "Datatables Editor" can be purchased here: https://editor.datatables.net'
+      );
+    return false;
+  }
+
+  return true;
+}

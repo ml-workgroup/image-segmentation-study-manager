@@ -95,13 +95,14 @@ def create_or_update_project():
 
     # these are filled different regarding whether data comes from form or from json
     users = None
+    split_types = None
     modalities = None
     contrast_types = None
 
     project_data = None
 
     # either get the data from a FormData object or from a JSON Object
-    # it only differs for users, modalities and contrast_types
+    # it only differs for users, split_types, modalities and contrast_types
     if is_form_request:
         project_data = request.form
 
@@ -110,12 +111,14 @@ def create_or_update_project():
 
         users = [user for user in zip(user_emails, user_roles)]
 
+        split_types = request.form.getlist("split_types[]")
         modalities = request.form.getlist("modalities[]")
         contrast_types = request.form.getlist("contrast_types[]")
     else:
         project_data = json.loads(request.data)
 
         users = project_data["users"]
+        split_types = project_data["split_types"]
         modalities = project_data["modalities"]
         contrast_types = project_data["contrast_types"]
 
@@ -131,6 +134,7 @@ def create_or_update_project():
     app.logger.info(long_name)
     app.logger.info(description)
     app.logger.info(users)
+    app.logger.info(split_types)
     app.logger.info(modalities)
     app.logger.info(contrast_types)
 
@@ -186,6 +190,15 @@ def create_or_update_project():
         project.reviewers = project_reviewers
         project.users = project_users
 
+        # Delete old split types
+        for split_type in project.split_types:
+            split_type = data_pool_controller.find_split_type(id = split_type.id)
+
+            if split_type:
+                data_pool_controller.delete_split_type(split_type)
+        
+        project.split_types.clear()
+
         # Delete old modalities
         for modality in project.modalities:
             modality = data_pool_controller.find_modality(id = modality.id)
@@ -207,6 +220,10 @@ def create_or_update_project():
         project_controller.update_project(project)
 
     # Update modalities (after project update / creation, because we need the project object)
+
+    # Create new contrast types
+    for split_type in split_types:
+        split_type = data_pool_controller.create_split_type(name = split_type, project_id = project.id)
 
     # Create new modalities
     for modality in modalities:

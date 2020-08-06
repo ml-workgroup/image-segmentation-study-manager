@@ -27,6 +27,7 @@ class Project(db.Model):
                                backref=db.backref('user_for_project', lazy='dynamic'))
 
     data_pool_objects = db.relationship('data_pool_models.DataPool', back_populates='project', cascade="all, delete-orphan")
+    split_types = db.relationship('data_pool_models.SplitType', back_populates='project', cascade="all, delete-orphan")
     modalities = db.relationship('data_pool_models.Modality', back_populates='project', cascade="all, delete-orphan")
     contrast_types = db.relationship('data_pool_models.ContrastType', back_populates='project', cascade="all, delete-orphan")
     automatic_segmentation_models = db.relationship('data_pool_models.AutomaticSegmentationModel', back_populates='project', cascade="all, delete-orphan")
@@ -44,7 +45,8 @@ class Project(db.Model):
         result["users"].extend((u.as_dict(), "review") for u in self.reviewers)
         result["users"].extend((u.as_dict(), "segmentation") for u in self.users)
 
-        # Modalities and contrast_types
+        # split_types, Modalities and contrast_types
+        result["split_types"] = [s.name for s in self.split_types]
         result["modalities"] = [m.name for m in self.modalities]
         result["contrast_types"] = [c.name for c in self.contrast_types]
         result["automatic_segmentation_models"] = [m.as_dict() for m in self.automatic_segmentation_models]

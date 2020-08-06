@@ -129,17 +129,17 @@ function setup_data_table(table_def, table_id, toggle_columns_id) {
               })
           );
           break;
-        case "split":
+        case "split_type":
           promises.push(
-            $.get("/api/data_pool/splitEnum/all")
+            $.get("/api/data_pool/project/" + project_id + "/split_types")
               .fail(defaultRESTFail)
               .then((response) => {
-                entry.options = response.split_enum.map((split) => ({
-                  label: split.value,
-                  value: split.name,
+                entry.options = response.split_types.map((split) => ({
+                  label: split.name,
+                  value: split.id,
                 }));
                 console.log(
-                  "Loaded " + entry.options.length + " splitEnum values"
+                  "Loaded " + entry.options.length + " split types values"
                 );
               })
           );

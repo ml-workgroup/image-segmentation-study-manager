@@ -86,14 +86,20 @@ def update_projects_metadata():
         else:
             return "Error: {} not a role".format(role)
 
-    # Update modalities and contrast type
+    # Update split_types, modalities and contrast type
+    [db.session.query(SplitType).filter(SplitType.id == c.id).delete() for c in project.split_types]
     [db.session.query(Modality).filter(Modality.id == m.id).delete() for m in project.modalities]
     [db.session.query(ContrastType).filter(ContrastType.id == c.id).delete() for c in project.contrast_types]
+    project.split_types.clear()
     project.modalities.clear()
     project.contrast_types.clear()
 
+    split_types = form.getlist("split_types[]")
     modalities = form.getlist("modalities[]")
     contrast_types = form.getlist("contrast_types[]")
+    for split_types in split_types:
+        split_types = SplitType(name=split_types, project=project)
+        db.session.add(split_types)
     for modality in modalities:
         modality = Modality(name=modality, project=project)
         db.session.add(modality)
