@@ -3,7 +3,7 @@ version: "3"
 
 services:
   issm:
-    image: issm:0.1
+    image: issm:latest
     restart: "always"
     container_name: issm
     ports:
@@ -17,7 +17,7 @@ services:
       # Database
       - DATABASE_URI=sqlite:////data/issm.sqlite
       # default admin user when no user exists
-      - ADMIN=admin@issm.org 
+      - ADMIN=admin@issm.org
       - ADMIN_PW=admin
       #  Flask-User Settings
       - APP_NAME=issm
@@ -32,4 +32,3 @@ services:
       - MAIL_PASSWORD=""
       #  Sendgrid Settings
       - SENDGRID_API_KEY=""
-      

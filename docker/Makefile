@@ -8,7 +8,7 @@ PROJECTDIR=$(shell dirname "$(CWD)")
 .PHONY: build clean run daemon stop it
 
 build:
-	cd .. && $(DOCKER) build -t $(NAME):$(VERSION) .
+	cd .. && $(DOCKER) build -t issm:latest -t $(NAME):$(VERSION) .
 
 run:
 	$(DOCKER) run --rm -d \
