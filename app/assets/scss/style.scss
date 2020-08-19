@@ -24,20 +24,20 @@ center {
 }
 
 .message {
-    margin-left: auto;
-    max-width: 70%;
-    
-    padding: 0.5rem;
+  margin-left: auto;
+  max-width: 70%;
 
-    background-color: #FAA;
-    border-radius: 10px;
-    margin-bottom: 1rem;
+  padding: 0.5rem;
 
-    &.other {
-      margin-left: unset;
-      margin-right: auto;
-      background-color: white;
-    }
+  background-color: #faa;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+
+  &.other {
+    margin-left: unset;
+    margin-right: auto;
+    background-color: white;
+  }
 }
 
 // Bootstrap overrides
@@ -107,11 +107,9 @@ a {
       padding-right: 1rem;
     }
   }
-
 }
 
 // Bootstrap override end
-
 
 /* END GENERAL */
 
@@ -192,11 +190,6 @@ a {
         }
 
         > .dropdown-menu {
-          -webkit-transition: -webkit-transform 0.3s ease-in;
-          transition: -webkit-transform 0.3s ease-in;
-          -o-transition: transform 0.3s ease-in;
-          transition: transform 0.3s ease-in;
-          transition: transform 0.3s ease-in, -webkit-transform 0.3s ease-in;
           padding: 0px;
 
           &:before {
@@ -298,12 +291,6 @@ a {
 @media (min-width: 992px) {
   .menu {
     > .nav-item.submenu .dropdown-menu {
-      -webkit-transform: translateY(20px);
-      -ms-transform: translateY(20px);
-      transform: translateY(20px);
-      -webkit-transition: all 0.3s ease-in;
-      -o-transition: all 0.3s ease-in;
-      transition: all 0.3s ease-in;
       opacity: 0;
       visibility: hidden;
       display: block;
@@ -313,7 +300,7 @@ a {
       }
     }
   }
-  
+
   .menu > .nav-item.submenu .dropdown-menu .nav-item > .dropdown-menu {
     position: absolute;
     left: 100%;
@@ -556,7 +543,6 @@ a {
 
 /*============== END Header ===============*/
 
-
 /*============== MainLayout ===============*/
 html {
   scroll-behavior: smooth;
@@ -584,13 +570,10 @@ a:link {
 .screen_section {
   background-color: #fff;
   min-height: 800px;
-  // min-height: 60vh;
-  height: 90vh;
   width: 100%;
   padding: 30px;
   display: block;
   position: relative;
-  overflow: hidden;
 
   &--min-content {
     height: min-content;

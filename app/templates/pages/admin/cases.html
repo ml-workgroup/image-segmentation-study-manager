@@ -83,6 +83,7 @@
       data: "patient_dob",
       visible: false,
       create: true,
+      def: false,
     },
     {
       type: "datetime",
@@ -167,12 +168,6 @@
         */
     Promise.all(setup_data_table(table_def, "#datatable", "#toggle_columns"))
       .then(() => {
-        table_def.forEach((config) => {
-          if (config.type == "upload") {
-            console.log(config);
-          }
-        });
-
         if (isDatatablesLoaded()) {
           editor = new $.fn.dataTable.Editor({
             ajax: {

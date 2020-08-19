@@ -31,7 +31,10 @@ function setup_data_table(table_def, table_id, toggle_columns_id) {
       // what the Flask server sends us (Defined in /app/models/config)
       entry.wireFormat = "DD.MM.YYYY HH:mm";
 
-      entry.def = () => new Date();
+      if (typeof entry.def === "undefined") entry.def = () => new Date();
+      else if (typeof entry.def === "boolean") {
+        entry.def = null;
+      }
     }
 
     // Configure Date fields (05.07.2020)
@@ -43,7 +46,10 @@ function setup_data_table(table_def, table_id, toggle_columns_id) {
       // what the Flask server sends us (Defined in /app/models/config)
       entry.wireFormat = "DD.MM.YYYY";
 
-      entry.def = () => new Date();
+      if (typeof entry.def === "undefined") entry.def = () => new Date();
+      else if (typeof entry.def === "boolean") {
+        entry.def = null;
+      }
     }
 
     // Configure Upload Fields

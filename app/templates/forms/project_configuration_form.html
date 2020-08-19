@@ -5,6 +5,9 @@
     $("#projectUsersContainer").empty();
     $("#contrastTypeContainer").empty();
     $("#modalitiesContainer").empty();
+    $("#newSplitType").val("");
+    $("#newContrastType").val("");
+    $("#newModality").val("");
 
     var creating_new_project = projectObj == null;
 
@@ -13,13 +16,13 @@
       $("#project_form_title").html("New Project");
       $("#project_form_shortname").val("");
       $("#project_form_longname").val("");
-      $("#project_form_description").html("");
+      $("#project_form_description").val("");
     } else {
       // Populate project data
       $("#project_form_title").html(projectObj["long_name"] + " configuration");
       $("#project_form_shortname").val(projectObj["short_name"]);
       $("#project_form_longname").val(projectObj["long_name"]);
-      $("#project_form_description").html(projectObj["description"]);
+      $("#project_form_description").val(projectObj["description"]);
 
       // Add split_types regions
       for (let splitType of projectObj["split_types"]) {
@@ -90,7 +93,8 @@
         contentType: false,
         processData: false,
         success: function () {
-          location.reload();
+          $("#projectConfigModal").modal("toggle");
+          $("#project_overview_table").DataTable().ajax.reload();
         },
         error: function (XMLHttpRequest, textStatus, errorThrown) {
           console.log(XMLHttpRequest, textStatus, errorThrown);
@@ -103,6 +107,17 @@
   }
 
   function addSplitType(name) {
+    if (
+      !name ||
+      name.length == 0 ||
+      $("#splitTypeContainer input")
+        .map((index, item) => {
+          return $(item).val();
+        })
+        .filter((index, item) => item === name).length
+    )
+      return;
+
     let container = $("#splitTypeContainer");
     let newEntry =
       `
@@ -130,6 +145,17 @@
   }
 
   function addContrastType(name) {
+    if (
+      !name ||
+      name.length == 0 ||
+      $("#contrastTypeContainer input")
+        .map((index, item) => {
+          return $(item).val();
+        })
+        .filter((index, item) => item === name).length
+    )
+      return;
+
     let container = $("#contrastTypeContainer");
     let newEntry =
       `
@@ -157,6 +183,17 @@
   }
 
   function addModalitiy(name) {
+    if (
+      !name ||
+      name.length == 0 ||
+      $("#modalitiesContainer input")
+        .map((index, item) => {
+          return $(item).val();
+        })
+        .filter((index, item) => item === name).length
+    )
+      return;
+
     let container = $("#modalitiesContainer");
     let newEntry =
       `
@@ -185,6 +222,8 @@
   }
 
   function addUser(email, role) {
+    if (!email || email.length == 0 || !role || role.length == 0) return;
+
     /**
      * Add a user to the list of users of the current project
      */
@@ -339,8 +378,8 @@
           </div>
 
           <!-- split_type, Modalities and contrast Types-->
-          <div class="form-group" style="display: flex;">
-            <div style="flex: 0 0 50%;">
+          <div class="form-group row">
+            <div class="col-md-5">
               <label>Split Types</label>
               <div id="splitTypeContainer"></div>
               <div class="form-row align-items-center">
@@ -363,7 +402,7 @@
                 </div>
               </div>
             </div>
-            <div style="flex: 0 0 50%;">
+            <div class="col-md-5">
               <label>Contrast Types</label>
               <div id="contrastTypeContainer"></div>
               <div class="form-row align-items-center">
@@ -386,7 +425,7 @@
                 </div>
               </div>
             </div>
-            <div style="flex: 1;">
+            <div class="col-md-5">
               <label>Modalities</label>
               <div id="modalitiesContainer"></div>
               <div class="form-row align-items-center">

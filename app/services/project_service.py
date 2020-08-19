@@ -263,7 +263,7 @@ def delete_project():
     app.logger.info(f"project deleted {is_project_deleted}")
 
     data = {
-        "success": is_project_deleted
+        "project": project.as_dict()
     }
 
     return jsonify(data)
