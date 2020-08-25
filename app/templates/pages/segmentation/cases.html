@@ -298,7 +298,10 @@
           stateSave: true,
 
           ajax: {
-            url: "/api/data_pool/project/" + project_id + "/datatable",
+            url:
+              "/api/data_pool/project/" +
+              project_id +
+              "/datatable?type=segmentation",
             type: "POST",
             contentType: "application/json; charset=utf-8",
             dataType: "json",

@@ -1,0 +1,66 @@
+<!-- Project configuration modal -->
+<script>
+  function show_project_delete_modal(projectObj, allUsers) {
+    console.log(projectObj);
+    $("#project_delete_form_title").html(
+      "Delete " + projectObj["long_name"] + "?"
+    );
+
+    // Submit button
+    $("#deleteBtn").click(function (e) {
+      e.preventDefault();
+
+      $.ajax({
+        url: "/api/project?id=" + projectObj["id"],
+        type: "DELETE",
+      }).then(
+        () => {
+          console.log("Deleted project with id " + projectObj["id"]);
+          datatable.ajax.reload();
+          $("#projectDeleteModal").modal("toggle");
+        },
+        (response) => {
+          alert("Could not delete project again");
+          console.log(response);
+        }
+      );
+    });
+
+    $("#projectDeleteModal").modal("show");
+  }
+</script>
+
+<div
+  class="modal fade"
+  tabindex="-1"
+  id="projectDeleteModal"
+  role="dialog"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title" id="project_delete_form_title"></h2>
+      </div>
+      <div class="modal-body">
+        <center>Do you really want to delete the project?</center>
+
+        <!-- Submit form -->
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">
+            Close
+          </button>
+          <button
+            type="submit"
+            class="btn btn-primary"
+            id="deleteBtn"
+            name="submit-btn"
+            value=""
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

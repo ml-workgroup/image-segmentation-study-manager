@@ -45,6 +45,24 @@ def get_all_image_status_values():
 
     return jsonify(data)
 
+
+"""
+Get all User of the project
+"""
+@data_pool_service.route("/project/<int:project_id>/users")
+@login_required
+def get_all_project_users(project_id):
+    users = data_pool_controller.get_all_users_for_project(project_id = project_id)
+
+
+    app.logger.info(users)
+
+    data = {
+        "users": [user.as_dict() for user in users]
+    }
+
+    return jsonify(data)
+
 """
 Get all Split values for Images of a project
 """
@@ -97,7 +115,7 @@ Get all entries of the DataPool tables according to the project, role and user
 def images_datatable(project_id):
 
     project = project_controller.find_project(id = project_id)
-
+    
     if project is None:
         return {
             'success': False,
@@ -126,7 +144,8 @@ def images_datatable(project_id):
 
     # if the current user is only a user of the project, filter not-queued images and those, which are not assigned to him
     app.logger.info(f"User is at least reviewer in project: {is_project_reviewer(project)}")
-    if not is_project_reviewer(project):
+     #The reviewer should be able to work as user
+    if not is_project_reviewer(project) or 'type' in request.args and request.args.get('type') == "segmentation":
         filter_query = filter_query.filter((ManualSegmentation.status == StatusEnum.queued) | (ManualSegmentation.assignee_id == current_user.id))
 
     r = request
@@ -389,7 +408,7 @@ def update_case_meta_data(project_id):
         manual_segmentation = data_pool_controller.find_manual_segmentation(id = image.manual_segmentation.id)
 
         ### Update manual segmentation ###
-        data_pool_controller.update_manual_segmentation_from_map(manual_segmentation, update_case_meta_data)
+        manual_segmentation = data_pool_controller.update_manual_segmentation_from_map(manual_segmentation, update_case_meta_data)
 
         # Append messages
         if "new_message" in update_case_meta_data:
@@ -397,6 +416,18 @@ def update_case_meta_data(project_id):
 
             message = data_pool_controller.create_message(user = current_user, message = message, manual_segmentation = manual_segmentation)
             manual_segmentation.messages.append(message)
+
+        # Assigned User
+        if "assigned_user" in update_case_meta_data and manual_segmentation.status == StatusEnum.assigned:
+            user_id = update_case_meta_data["assigned_user"]
+
+            if user_id.isdigit():
+                assigned_user = user_controller.find_user(user_id)
+                
+                # assign case to user
+                data_pool_controller.assign_manual_segmentation(manual_segmentation = manual_segmentation, assignee = assigned_user)
+        elif manual_segmentation.assignee is not None:#if no user selected
+            data_pool_controller.unclaim_manual_segmentation(manual_segmentation = manual_segmentation)
 
         ### Commit image object ###
         data_pool_controller.update_manual_segmentation(manual_segmentation)

@@ -9,9 +9,22 @@ from sqlalchemy import DateTime, Date
 from app import db, current_project
 
 from app.models.config import DATE_FORMAT, DATETIME_FORMAT
-from app.models.project_models import Project
+from app.models.project_models import Project, ProjectsUsers
 from app.models.user_models import User
 from app.models.data_pool_models import StatusEnum, SplitType, Image, ManualSegmentation, AutomaticSegmentation, AutomaticSegmentationModel, Message, Modality, ContrastType
+
+# USER
+
+def get_all_users_for_project(project_id = None):
+
+    if project_id is None:
+        return None
+
+    users = User.query.join(ProjectsUsers, User.id == ProjectsUsers.user_id).filter(ProjectsUsers.project_id == project_id).all()
+    
+    return users
+
+# END USER
 
 # SPLIT_TYPE
 
@@ -380,7 +393,7 @@ def update_manual_segmentation_from_map(manual_segmentation, meta_data):
     return update_manual_segmentation(manual_segmentation)
 
 def assign_manual_segmentation(manual_segmentation = None, assignee = None, message = None):
-
+    
     if manual_segmentation is None:
         app.logger.error("No manual segmentation provided")
         return None

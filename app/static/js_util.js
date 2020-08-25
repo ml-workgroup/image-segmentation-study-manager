@@ -103,7 +103,7 @@ function defaultRESTFail(request, status, errorThrown) {
 function getDeepElementFromObject(deepKey, object) {
   start = [deepKey.split("."), object];
 
-  while (start[0].length > 0) {
+  while (start[0].length > 0 && start[1]) {
     start = [start[0].splice(1, start[0].length - 1), start[1][start[0]]];
   }
 

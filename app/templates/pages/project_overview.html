@@ -61,19 +61,7 @@
         let row = $(this).closest("tr");
         let projectObject = datatable.row(row).data();
 
-        $.ajax({
-          url: "/api/project?id=" + projectObject["id"],
-          type: "DELETE",
-        }).then(
-          () => {
-            console.log("Deleted project with id " + projectObject["id"]);
-            datatable.ajax.reload();
-          },
-          (response) => {
-            alert("Could not delete project again");
-            console.log(response);
-          }
-        );
+        show_project_delete_modal(projectObject);
       });
 
       // New project
@@ -117,4 +105,5 @@
   </div>
 </div>
 {% endblock %} {% block forms %} {% include
-'forms/project_configuration_form.html' %} {% endblock %}
+'forms/project_configuration_form.html' %} {% include
+'forms/project_delete_form.html' %} {% endblock %}

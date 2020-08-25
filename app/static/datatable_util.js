@@ -103,8 +103,21 @@ function setup_data_table(table_def, table_id, toggle_columns_id) {
       entry.placeholder = "Select...";
       entry.placeholderDisabled = false;
       entry.placeholderValue = null;
-
+      console.log(entry.name);
       switch (entry.name) {
+        case "assigned_user":
+          promises.push(
+            $.get("/api/data_pool/project/" + project_id + "/users")
+              .fail(defaultRESTFail)
+              .then((response) => {
+                entry.options = response.users.map((user) => ({
+                  label: user.email,
+                  value: user.id,
+                }));
+                console.log("Loaded " + entry.options.length + " users");
+              })
+          );
+          break;
         case "modality":
           promises.push(
             $.get("/api/data_pool/project/" + project_id + "/modalities")
@@ -211,7 +224,7 @@ function handle_initEdit(editor, table_def, e, node, data) {
     if (field_config.type == "select") {
       // this solves the issue of data['manual_segmentation.status']
       label = getDeepElementFromObject(field_config.data, data);
-      // console.log(field_config.data, label);
+      console.log(field_config.data, label);
 
       if (label != null && field_config.options != null) {
         // get the option corresponding to the label and select it in the current editor

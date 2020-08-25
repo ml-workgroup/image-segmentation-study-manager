@@ -30,6 +30,23 @@
     },
     {
       type: "select",
+      title: "Assigned User",
+      name: "assigned_user",
+      data: "manual_segmentation.assignee.email",
+      render: function (data, type, full, meta) {
+        if (
+          full.manual_segmentation &&
+          full.manual_segmentation.assignee &&
+          full.manual_segmentation.assignee.email
+        ) {
+          return full.manual_segmentation.assignee.email;
+        } else return "";
+      },
+      create: false,
+      visible: false,
+    },
+    {
+      type: "select",
       title: "Split",
       data: "split_type",
     },
@@ -199,12 +216,36 @@
             handle_initCreate(editor);
           });
 
+          editor.on("open", function (e, mode, action) {
+            // replace the messages div with the actual messages
+            if (action == "edit") {
+              var assign_field = reviewEditor.field("status");
+
+              if (assign_field)
+                $("#DTE_Field_status").on("change", function () {
+                  var user_dropdown = $("#DTE_Field_assigned_user")
+                    .parent()
+                    .parent()
+                    .parent();
+                  if (this.value === "assigned") {
+                    if (user_dropdown.is(":visible"))
+                      //Dropdown field allready visible
+                      return;
+                    user_dropdown.show();
+                  } else {
+                    //Hide the user selection
+                    if (user_dropdown.is(":visible")) user_dropdown.hide();
+                  }
+                });
+            }
+          });
+
           editor.on("initEdit", (e, node, data) => {
             editor_modus = "edit";
             handle_initEdit(editor, table_def, e, node, data);
           });
 
-          /* 
+          /*
             if image was uploaded in CREATE screen but the data was not confirmed,
             then we want to delete that data again. (Dismiss)
 

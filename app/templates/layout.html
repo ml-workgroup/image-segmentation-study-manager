@@ -1,31 +1,93 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <!-- These 3 meta tags MUST come first -->
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <title>Image Segmentation Study Manager</title>
 
     <!-- Favicon -->
-    <link rel="apple-touch-icon" sizes="57x57" href="{{ url_for('static', filename='favicon/apple-icon-57x57.png') }}">
-    <link rel="apple-touch-icon" sizes="60x60" href="{{ url_for('static', filename='favicon/apple-icon-60x60.png') }}">
-    <link rel="apple-touch-icon" sizes="72x72" href="{{ url_for('static', filename='favicon/apple-icon-72x72.png') }}">
-    <link rel="apple-touch-icon" sizes="76x76" href="{{ url_for('static', filename='favicon/apple-icon-76x76.png') }}">
-    <link rel="apple-touch-icon" sizes="114x114" href="{{ url_for('static', filename='favicon/apple-icon-114x114.png') }}">
-    <link rel="apple-touch-icon" sizes="120x120" href="{{ url_for('static', filename='favicon/apple-icon-120x120.png') }}">
-    <link rel="apple-touch-icon" sizes="144x144" href="{{ url_for('static', filename='favicon/apple-icon-144x144.png') }}">
-    <link rel="apple-touch-icon" sizes="152x152" href="{{ url_for('static', filename='favicon/apple-icon-152x152.png') }}">
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='favicon/apple-icon-180x180.png') }}">
-    <link rel="icon" type="image/png" sizes="192x192"  href="{{ url_for('static', filename='favicon/android-icon-192x192.png') }}">
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon/favicon-32x32.png') }}">
-    <link rel="icon" type="image/png" sizes="96x96" href="{{ url_for('static', filename='favicon/favicon-96x96.png') }}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon/favicon-16x16.png') }}">
-    <link rel="manifest" href="{{ url_for('static', filename='favicon/manifest.json') }}">
-    <meta name="msapplication-TileColor" content="#ffffff">
-    <meta name="msapplication-TileImage" content="{{ url_for('static', filename='favicon/ms-icon-144x144.png') }}">
-    <meta name="theme-color" content="#ffffff">
+    <link
+      rel="apple-touch-icon"
+      sizes="57x57"
+      href="{{ url_for('static', filename='favicon/apple-icon-57x57.png') }}"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="60x60"
+      href="{{ url_for('static', filename='favicon/apple-icon-60x60.png') }}"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="72x72"
+      href="{{ url_for('static', filename='favicon/apple-icon-72x72.png') }}"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="76x76"
+      href="{{ url_for('static', filename='favicon/apple-icon-76x76.png') }}"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="114x114"
+      href="{{ url_for('static', filename='favicon/apple-icon-114x114.png') }}"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="120x120"
+      href="{{ url_for('static', filename='favicon/apple-icon-120x120.png') }}"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="144x144"
+      href="{{ url_for('static', filename='favicon/apple-icon-144x144.png') }}"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="152x152"
+      href="{{ url_for('static', filename='favicon/apple-icon-152x152.png') }}"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="{{ url_for('static', filename='favicon/apple-icon-180x180.png') }}"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="192x192"
+      href="{{ url_for('static', filename='favicon/android-icon-192x192.png') }}"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="{{ url_for('static', filename='favicon/favicon-32x32.png') }}"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="96x96"
+      href="{{ url_for('static', filename='favicon/favicon-96x96.png') }}"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="{{ url_for('static', filename='favicon/favicon-16x16.png') }}"
+    />
+    <link
+      rel="manifest"
+      href="{{ url_for('static', filename='favicon/manifest.json') }}"
+    />
+    <meta name="msapplication-TileColor" content="#ffffff" />
+    <meta
+      name="msapplication-TileImage"
+      content="{{ url_for('static', filename='favicon/ms-icon-144x144.png') }}"
+    />
+    <meta name="theme-color" content="#ffffff" />
 
     <!-- <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.png') }}"> -->
 
@@ -35,179 +97,188 @@
 
     <!-- Datatables -->
     <script src="{{ url_for('static', filename='DataTables/datatables.min.js') }}"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='DataTables/datatables.min.css') }}">
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='DataTables/datatables.min.css') }}"
+    />
 
     <!-- DataTables Editor -->
     <!-- Add dataTables.editor to static folder in order to use it -->
     <script src="{{ url_for('static', filename='datatable_editor/js/dataTables.editor.min.js') }}"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='datatable_editor/css/editor.dataTables.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='datatable_editor/css/editor.bootstrap4.min.css') }}">
-    
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='datatable_editor/css/editor.dataTables.min.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='datatable_editor/css/editor.bootstrap4.min.css') }}"
+    />
+
     <!-- Bootstrap 4 -->
     <!-- Popper needed for Bootstrap (if not using Bootstrap bundle) -->
     <script src="{{ url_for('static', filename='Popper_1.16.0/popper.min.js') }}"></script>
     <script src="{{ url_for('static', filename='Bootstrap_4.4.1/bootstrap.min.js') }}"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='Bootstrap_4.4.1/bootstrap.min.css') }}">
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='Bootstrap_4.4.1/bootstrap.min.css') }}"
+    />
 
     <!-- CSS libraries -->
     <!-- <link rel="stylesheet" href="{{ url_for('static', filename='font-awesome-4.7.0.min.css') }}"> -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='fontawesome-free-5.13.1-web/css/fontawesome.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='fontawesome-free-5.13.1-web/css/solid.min.css') }}">
-    
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='fontawesome-free-5.13.1-web/css/fontawesome.min.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='fontawesome-free-5.13.1-web/css/solid.min.css') }}"
+    />
 
     <!-- Custom files -->
     <!--
     <script src="{{ url_for('static', filename='messenger.js') }}"></script>
     <script src="{{ url_for('static', filename='datatable_util.js') }}"></script>
     -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
     <script src="{{ url_for('static', filename='js_util.js') }}"></script>
     <script src="{{ url_for('static', filename='datatable_util.js') }}"></script>
 
     <script>
+      // Change favicon to dark/light mode, depending on what the user prefers
+      function replaceLink(link, type) {
+        var new_link = document.createElement("link");
 
-        // Change favicon to dark/light mode, depending on what the user prefers
-        function replaceLink(link, type) {
-            var new_link = document.createElement('link');
+        new_link.rel = link.rel;
+        new_link.type = link.type;
+        new_link.sizes = link.sizes;
 
-            new_link.rel = link.rel;
-            new_link.type = link.type;
-            new_link.sizes = link.sizes;
-
-            if (type === "dark") {
-                new_link.href = link.href.replaceAll('favicon/', 'favicon-dark/');
-            } else {
-                new_link.href = link.href;
-            }
-
-            return new_link;
+        if (type === "dark") {
+          new_link.href = link.href.replaceAll("favicon/", "favicon-dark/");
+        } else {
+          new_link.href = link.href;
         }
 
-        function replaceMeta(meta, type) {
-            var new_meta = document.createElement('meta');
+        return new_link;
+      }
 
-            new_meta.name = meta.name;
+      function replaceMeta(meta, type) {
+        var new_meta = document.createElement("meta");
 
-            if (type === "dark") {
-                new_meta.content = meta.content.replaceAll('favicon/', 'favicon-dark/').replaceAll('#ffffff', '#000000');
-            } else {
-                new_meta.content = meta.content;
-            }
+        new_meta.name = meta.name;
 
-            return new_meta;
+        if (type === "dark") {
+          new_meta.content = meta.content
+            .replaceAll("favicon/", "favicon-dark/")
+            .replaceAll("#ffffff", "#000000");
+        } else {
+          new_meta.content = meta.content;
         }
 
-        function applyIcon (type) {
+        return new_meta;
+      }
 
-            let head = document.getElementsByTagName('head')[0];
+      function applyIcon(type) {
+        let head = document.getElementsByTagName("head")[0];
 
-            document.querySelectorAll("link[rel*='icon']").forEach(link => {
+        document.querySelectorAll("link[rel*='icon']").forEach((link) => {
+          var new_link = replaceLink(link, type);
 
-                var new_link = replaceLink(link, type);
+          head.removeChild(link);
+          head.appendChild(new_link);
+        });
 
-                head.removeChild(link);
-                head.appendChild(new_link);
-            })
+        document.querySelectorAll("link[rel*='manifest']").forEach((link) => {
+          var new_link = replaceLink(link, type);
 
-            document.querySelectorAll("link[rel*='manifest']").forEach(link => {
+          head.removeChild(link);
+          head.appendChild(new_link);
+        });
 
-                var new_link = replaceLink(link, type);
+        document.querySelectorAll("meta").forEach((meta) => {
+          var new_meta = replaceMeta(meta, type);
 
-                head.removeChild(link);
-                head.appendChild(new_link);
-            })
+          if (
+            [
+              "msapplication-TileColor",
+              "msapplication-TileImage",
+              "theme-color",
+            ].indexOf(meta.name) != -1
+          ) {
+            head.removeChild(meta);
+            head.appendChild(new_meta);
+          }
+        });
 
-            document.querySelectorAll("meta").forEach(meta => {
+        // var mhh_logo_img = document.getElementById("mhh_logo");
 
-                var new_meta = replaceMeta(meta, type);
+        // if(type === "dark") {
+        //     mhh_logo_img.src = mhh_logo_img.src.replaceAll("mhh_logo", "mhh_logo_dark");
+        // }
+      }
 
-                if(["msapplication-TileColor", "msapplication-TileImage", "theme-color"].indexOf(meta.name) != -1) {
-                    head.removeChild(meta);
-                    head.appendChild(new_meta);
-                }
+      $(document).ready(() => {
+        var dmQuery = window.matchMedia("(prefers-color-scheme: dark)");
+        var lmQuery = window.matchMedia("(prefers-color-scheme: light)");
 
-            })
-
-            // var mhh_logo_img = document.getElementById("mhh_logo");
-
-            // if(type === "dark") {
-            //     mhh_logo_img.src = mhh_logo_img.src.replaceAll("mhh_logo", "mhh_logo_dark");
-            // }
+        // Check on initial load if dark mode is already there. Apply the dark
+        // mode favicon if true.
+        if (dmQuery.matches) {
+          applyIcon("dark");
         }
 
-        $(document).ready(() => {
-            var dmQuery = window.matchMedia("(prefers-color-scheme: dark)");
-            var lmQuery = window.matchMedia("(prefers-color-scheme: light)");
-    
-            // Check on initial load if dark mode is already there. Apply the dark
-            // mode favicon if true.
-            if (dmQuery.matches) {
-                applyIcon("dark");
-            }
-    
-            dmQuery.addListener(function(){
-                applyIcon("dark")
-            });
-    
-            lmQuery.addListener(function(){
-                applyIcon("light");
-            });
-        })
+        dmQuery.addListener(function () {
+          applyIcon("dark");
+        });
 
-
+        lmQuery.addListener(function () {
+          applyIcon("light");
+        });
+      });
     </script>
 
     <script>
-        // Setup ajax calls to flask server
-        let csrftoken = "{{ csrf_token() }}";
-        $.ajaxSetup({
-            beforeSend: function (xhr, settings) {
-                if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
-                    xhr.setRequestHeader("X-CSRFToken", csrftoken)
-                }
-            }
-        });
+      // Setup ajax calls to flask server
+      let csrftoken = "{{ csrf_token() }}";
+      $.ajaxSetup({
+          beforeSend: function (xhr, settings) {
+              if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                  xhr.setRequestHeader("X-CSRFToken", csrftoken)
+              }
+          }
+      });
 
-        // Save meta data like project id and user id for later usage
-        {% if current_project.id is defined %}
-            let project_id = {{current_project.id}};
-        {% endif %} 
-        let user_id = {{current_user.id}};
+      // Save meta data like project id and user id for later usage
+      {% if current_project.id is defined %}
+          let project_id = {{current_project.id}};
+      {% endif %}
+      let user_id = {{current_user.id}};
+      let is_project_admin = {{'true' if is_project_admin else 'false'}};
+      let is_project_reviewer = {{'true' if is_project_reviewer else 'false'}};
     </script>
+  </head>
 
-</head>
-
-<body>
-
-    {% include 'header.html' %}
-
-    {% include 'flash_messages.html' %}
-
-    {% block body %}
+  <body>
+    {% include 'header.html' %} {% include 'flash_messages.html' %} {% block
+    body %}
     <section class="screen_section">
-        <div class="row">
-
-            {% if current_project.id is defined %}
-            <div class="col-lg-12">
-                <h1 style="text-align: center">{{data.current_project.long_name}}</h1>
-            </div>
-            {% endif %}
-
-            <div class="col-lg-12">
-                {% block content %}{% endblock %}
-            </div>
+      <div class="row">
+        {% if current_project.id is defined %}
+        <div class="col-lg-12">
+          <h1 style="text-align: center;">
+            {{data.current_project.long_name}}
+          </h1>
         </div>
+        {% endif %}
+
+        <div class="col-lg-12">
+          {% block content %}{% endblock %}
+        </div>
+      </div>
     </section>
 
-    {% block forms %}{% endblock %}
-
-    {% include 'footer.html' %}
-
-    {% endblock %}
-
-
-</body>
-
-
-
+    {% block forms %}{% endblock %} {% include 'footer.html' %} {% endblock %}
+  </body>
 </html>
