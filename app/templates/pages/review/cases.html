@@ -138,6 +138,7 @@
     {
       type: "upload",
       title: "Image",
+      name: "upload_image",
       data: "upload_image",
       create: true,
       ajax: {
@@ -153,10 +154,36 @@
           formData.append("id", editor.field("id").get());
         }
       },
+      render(data, type, row, meta) {
+        var link = document.createElement("a");
+        link.href =
+          "/api/data_pool/project/" +
+          project_id +
+          "/case/" +
+          row.id +
+          "/download?select=image";
+
+        var download_button = document.createElement("button");
+        download_button.className = "btn";
+
+        var title_span = document.createElement("span");
+        title_span.style = "margin-right: 5px";
+        title_span.innerHTML = "Download";
+
+        var download_icon = document.createElement("i");
+        download_icon.className = "fas fa-image";
+
+        download_button.appendChild(title_span);
+        download_button.appendChild(download_icon);
+
+        link.appendChild(download_button);
+
+        return link.outerHTML;
+      },
     },
     {
       type: "upload",
-      title: "Mask",
+      title: "Manual Segmentation",
       data: "upload_mask",
       create: false, // a mask can only be added to existing images to reduce complexity in code
       ajax: {
@@ -176,6 +203,35 @@
           formData.append("id", editor.field("id").get());
         }
       },
+      render(data, type, row, meta) {
+        //Hide button if no manual segmentation is set
+        if (!row.manual_segmentation) return "";
+
+        var link = document.createElement("a");
+        link.href =
+          "/api/data_pool/project/" +
+          project_id +
+          "/case/" +
+          row.id +
+          "/download?select=manual_segmentation";
+
+        var download_button = document.createElement("button");
+        download_button.className = "btn";
+
+        var title_span = document.createElement("span");
+        title_span.style = "margin-right: 5px";
+        title_span.innerHTML = "Download";
+
+        var download_icon = document.createElement("i");
+        download_icon.className = "fas fa-image";
+
+        download_button.appendChild(title_span);
+        download_button.appendChild(download_icon);
+
+        link.appendChild(download_button);
+
+        return link.outerHTML;
+      },
     },
   ];
 
@@ -189,13 +245,29 @@
         */
     Promise.all(setup_data_table(table_def, "#datatable", "#toggle_columns"))
       .then(() => {
-        table_def.forEach((config) => {
-          if (config.type == "upload") {
-            console.log(config);
-          }
-        });
-
         if (isDatatablesLoaded()) {
+          let table_editor_def = [...table_def];
+          table_editor_def.push(
+            ...[
+              // messages
+              // implemented as hidden field which is later being replaced in the DOM
+              {
+                targets: -1,
+                data: null,
+                type: "hidden",
+                name: "messages",
+              },
+              // new message to append to the messages of the manual_segmentation.messages
+              {
+                title: "New Message",
+                label: "New Message",
+                data: "new_message",
+                name: "new_message",
+                type: "textarea",
+              },
+            ]
+          );
+
           editor = new $.fn.dataTable.Editor({
             ajax: {
               edit: {
@@ -205,7 +277,7 @@
             },
             table: "#datatable",
             idSrc: "id",
-            fields: table_def,
+            fields: table_editor_def,
           });
 
           // used for: see below
@@ -237,6 +309,27 @@
                     if (user_dropdown.is(":visible")) user_dropdown.hide();
                   }
                 });
+
+              var messages_field = reviewEditor.field("messages");
+
+              var container = messages_field.dom.container[0];
+
+              container.style = "display: block;";
+
+              var selectedRows = datatable.rows({ selected: true });
+              var messages = selectedRows.data()[0].manual_segmentation
+                .messages;
+
+              $(".DTE_Field_Name_messages").html(renderMessages(messages));
+
+              if (!is_project_admin) {
+                //Hide the Image upload field
+                console.log($(editor.field("upload_image").input()));
+                $(editor.field("upload_image").input())
+                  .parentsUntil("div.DTE_Field_Type_upload")
+                  .parent()
+                  .hide();
+              }
             }
           });
 

@@ -56,13 +56,13 @@ class Project(db.Model):
     Returns a path where the requested image can be found or stored depending on the type of the image.
 
     The valid types include:
-        'raw' => Raw case images, e.g. when a new case is created
+        'image' => Raw case images, e.g. when a new case is created
         'manual_segmentation' => Result of the manual segmentation of a user
         'automatic_segmentation' => Result of the automatic segmentation via a machine learning model
                                     In this case, the model needs to be defined. 
                                     The model then defines the concrete directory of the image
     """
-    def get_image_path(self, image_type = 'raw', model_id = None, image_id = None):
+    def get_image_path(self, image_type = 'image', model_id = None, image_id = None):
 
         if image_id is None:
             app.logger.error("No image id provided")
@@ -70,10 +70,10 @@ class Project(db.Model):
 
         image_dir = None
 
-        if image_type == 'raw':
-            image_dir = os.path.join(app.config['DATA_PATH'], self.short_name, "raw")
+        if image_type == 'image':
+            image_dir = os.path.join(app.config['DATA_PATH'], self.short_name, "images")
         elif image_type == 'manual_segmentation':
-            image_dir = os.path.join(app.config['DATA_PATH'], self.short_name, "manual_segmentation")
+            image_dir = os.path.join(app.config['DATA_PATH'], self.short_name, "manual_segmentations")
         elif image_type == 'automatic_segmentation':
             if model_id is None:
                 app.logger.error("No model id provided")

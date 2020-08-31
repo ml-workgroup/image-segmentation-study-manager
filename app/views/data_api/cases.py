@@ -247,7 +247,7 @@ def delete_case(project_id, case_id):
     data = json.loads(request.data)
     image = db.session.query(Image).filter(Image.id == case_id).first()
     image_path = os.path.join(app.config['DATA_PATH'], project.short_name, "images", image.name)
-    segmentation_path = os.path.join(app.config['DATA_PATH'], current_project.short_name, "masks", image.name)
+    segmentation_path = os.path.join(app.config['DATA_PATH'], current_project.short_name, "manual_segmentations", image.name)
     db.session.query(Image).filter(Image.id == image.id).delete()
     if os.path.exists(image_path):
         os.remove(image_path)
@@ -305,7 +305,7 @@ def upload_case_segmentation(project_id, case_id):
         db.session.add(segmentation)
 
     # Save file
-    segmentation_path = os.path.join(app.config['DATA_PATH'], current_project.short_name, "masks",
+    segmentation_path = os.path.join(app.config['DATA_PATH'], current_project.short_name, "manual_segmentations",
                                      segmentation_file.filename)
     nibabel.save(segmentation_nifti, segmentation_path)
 

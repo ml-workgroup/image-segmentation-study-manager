@@ -221,7 +221,7 @@ function handle_initEdit(editor, table_def, e, node, data) {
     )[0];
 
     // setup Editor to preselect the correct option of the DataTable select field
-    if (field_config.type == "select") {
+    if (field_config && field_config.type == "select") {
       // this solves the issue of data['manual_segmentation.status']
       label = getDeepElementFromObject(field_config.data, data);
       console.log(field_config.data, label);
@@ -293,36 +293,6 @@ function renderMessages(messages) {
   messages_container.style = "min-height: 200px;";
   messages_container.innerHTML = "Messages:";
 
-  // EXAMPLE / DUMMY DATA
-  if (messages.length == 0) {
-    messages = [
-      {
-        user: {
-          id: 4,
-          first_name: "Peter",
-          last_name: "Schweiger",
-        },
-        message: "Hallo, das ist meine Abgabe. Ist das so in Ordnung?",
-      },
-      {
-        user: {
-          id: 1,
-          first_name: "Admin",
-          last_name: "Admin",
-        },
-        message: "Hallo, nein, das musst du noch mal überarbeiten.",
-      },
-      {
-        user: {
-          id: 5,
-          first_name: "Franz",
-          last_name: "Ferdinand",
-        },
-        message: "Alles klar, sollte jetzt aber in Ordnung sein!",
-      },
-    ];
-  }
-
   for (var i in messages) {
     var message_obj = messages[i];
     var message_div = document.createElement("div");
@@ -335,10 +305,17 @@ function renderMessages(messages) {
       message_div.className += " other";
     }
 
-    var sender_label = document.createElement("label");
+    var sender_label = document.createElement("div");
     sender_label.style = "font-style: italic";
+    sender_label.className = "row";
     sender_label.innerHTML =
-      message_obj.user.first_name + " " + message_obj.user.last_name;
+      "<div class='col-6'><b>" +
+      message_obj.user.first_name +
+      " " +
+      message_obj.user.last_name +
+      "</b></div><div class='col-6'>" +
+      message_obj.date +
+      "</div>";
 
     // sets the actual message
     var message_content_div = document.createElement("div");

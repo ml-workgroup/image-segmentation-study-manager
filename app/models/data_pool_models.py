@@ -126,14 +126,14 @@ class DataPool(db.Model):
         image_path = None
 
         if self.type == 'image':
-            image_path = self.project.get_image_path(image_type = 'raw', model_id = None, image_id = self.id)
+            image_path = self.project.get_image_path(image_type = 'image', model_id = None, image_id = self.id)
         elif self.type == 'manual_segmentation':
             image_path = self.project.get_image_path(image_type = self.type, model_id = None, image_id = self.id)
         elif self.type == 'automatic_segmentation':
             image_path = self.project.get_image_path(image_type = self.type, model_id = self.model_id, image_id = self.id)
         else:
             app.logger.error(f"Unrecognized DataPool type {self.type}")
-
+        
         return image_path
 
     def __get_nii__(self):

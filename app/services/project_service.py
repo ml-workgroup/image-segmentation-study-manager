@@ -164,7 +164,7 @@ def create_or_update_project():
 
         # Create directories for data
         image_directory = os.path.join(app.config['DATA_PATH'], project.short_name, "images")
-        mask_directory = os.path.join(app.config['DATA_PATH'], project.short_name, "masks")
+        mask_directory = os.path.join(app.config['DATA_PATH'], project.short_name, "manual_segmentations")
 
         os.makedirs(image_directory, exist_ok=False)
         os.makedirs(mask_directory, exist_ok=False)

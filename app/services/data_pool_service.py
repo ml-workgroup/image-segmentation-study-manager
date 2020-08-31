@@ -298,7 +298,7 @@ def upload_case(project_id):
 
     app.logger.info(f"Image: {image}")
 
-    image_path = project.get_image_path(image_type = 'raw', image_id = image.id)
+    image_path = project.get_image_path(image_type = 'image', image_id = image.id)
 
     app.logger.info(f"Image path: {image_path}")
 
@@ -411,7 +411,7 @@ def update_case_meta_data(project_id):
         manual_segmentation = data_pool_controller.update_manual_segmentation_from_map(manual_segmentation, update_case_meta_data)
 
         # Append messages
-        if "new_message" in update_case_meta_data:
+        if "new_message" in update_case_meta_data and len(update_case_meta_data["new_message"]) > 0:
             message = update_case_meta_data["new_message"]
 
             message = data_pool_controller.create_message(user = current_user, message = message, manual_segmentation = manual_segmentation)
@@ -421,11 +421,14 @@ def update_case_meta_data(project_id):
         if "assigned_user" in update_case_meta_data and manual_segmentation.status == StatusEnum.assigned:
             user_id = update_case_meta_data["assigned_user"]
 
-            if user_id.isdigit():
+            if user_id.isdigit() and not (manual_segmentation.assignee is not None and manual_segmentation.assignee.id == int(user_id)) :
+                message = Message(user=current_user, date=datetime.now(), message="Assigned by Reviewer",
+                        manual_segmentation=manual_segmentation, manual_segmentation_id=manual_segmentation.id)
+
                 assigned_user = user_controller.find_user(user_id)
                 
                 # assign case to user
-                data_pool_controller.assign_manual_segmentation(manual_segmentation = manual_segmentation, assignee = assigned_user)
+                data_pool_controller.assign_manual_segmentation(manual_segmentation = manual_segmentation, assignee = assigned_user, message = message)
         elif manual_segmentation.assignee is not None:#if no user selected
             data_pool_controller.unclaim_manual_segmentation(manual_segmentation = manual_segmentation)
 
@@ -477,7 +480,7 @@ def delete_case(project_id):
             }, 400
 
         # delete all actual nifti images
-        raw_image_path = project.get_image_path(image_type = 'raw', image_id = image.id)
+        raw_image_path = project.get_image_path(image_type = 'image', image_id = image.id)
         if os.path.exists(raw_image_path):
             os.remove(raw_image_path)
 
@@ -554,7 +557,7 @@ def upload_segmentation(project_id):
         }, 400
 
     # Make sure that sizes match
-    image_path = project.get_image_path(image_type = 'raw', image_id = image.id)
+    image_path = project.get_image_path(image_type = 'image', image_id = image.id)
 
     image_nifti = nibabel.load(image_path)
     if image_nifti.shape[:-1] != segmentation_nifti.shape[:-1]:
@@ -704,7 +707,7 @@ def upload_case_segmentation(project_id, case_id):
         db.session.add(segmentation)
 
     # Save file
-    segmentation_path = os.path.join(app.config['DATA_PATH'], current_project.short_name, "masks",
+    segmentation_path = os.path.join(app.config['DATA_PATH'], current_project.short_name, "manual_segmentations",
                                      segmentation_file.filename)
     nibabel.save(segmentation_nifti, segmentation_path)
 
@@ -879,6 +882,9 @@ def download_case(project_id, case_id):
     image = data_pool_controller.find_image(id = case_id)
     manual_segmentation = image.manual_segmentation
 
+    #TODO for Automatic Segmentation
+    file_type = request.args.get('select')#image,manual_segmentation, automatic_segmentaion, archive
+    
     if image is None:
         return {
             'success': False,
@@ -886,23 +892,38 @@ def download_case(project_id, case_id):
             'message': "The case id provided in the url .../case/ID... is not valid case id"
         }, 400
 
-    # Create zip file
-    data = io.BytesIO()
-    with zipfile.ZipFile(data, mode='w') as z:
-        z.write(image.__get_fn__(), 'image.nii.gz')
+    if file_type == "image":
+        try:
+            return flask.send_file(image.__get_fn__(), as_attachment=True)
+        except FileNotFoundError:
+            flask.abort(404)
+    elif file_type == "manual_segmentation":
+        try:
+            return flask.send_file(image.manual_segmentation.__get_fn__(), as_attachment=True)
+        except FileNotFoundError:
+            flask.abort(404)
+    elif file_type == "archive":
+        # Create zip file
+        data = io.BytesIO()
+        with zipfile.ZipFile(data, mode='w') as z:
+            z.write(image.__get_fn__(), 'image.nii.gz')
 
-        if image.manual_segmentation != None:
-            z.write(image.manual_segmentation.__get_fn__(), 'mask.nii.gz')
+            if image.manual_segmentation != None:
+                z.write(image.manual_segmentation.__get_fn__(), 'manual_segmentation.nii.gz')
+        
+        data.seek(0)
+
+        # Download file
+        return flask.send_file(
+            data,
+            mimetype='application/zip',
+            as_attachment=True,
+            attachment_filename=f'{project.short_name}_case_{image.id}.zip'
+        )
+    else:
+        abort(404)
+
     
-    data.seek(0)
-
-    # Download file
-    return flask.send_file(
-        data,
-        mimetype='application/zip',
-        as_attachment=True,
-        attachment_filename=f'{project.short_name}_case_{image.id}.zip'
-    )
 
 """
 This should rather be done with accessor functions like here:

@@ -259,7 +259,7 @@ def update_image_from_map(image, meta_data):
                 continue
 
             if not value:
-                value = None
+                continue
 
             # Date parsing for date columns
             if type(column.type) == Date:
