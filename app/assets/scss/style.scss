@@ -113,6 +113,37 @@ a {
 
 /* END GENERAL */
 
+/*============== Messages ===============*/
+.meta-message {
+  display: flex;
+  -webkit-box-pack: justify;
+  justify-content: space-between;
+  -webkit-box-align: center;
+  align-items: center;
+  margin-bottom: 0;
+  color: #333;
+  opacity: 0.8;
+  font-weight: 400;
+  margin-bottom: 20px;
+  &::before,
+  &::after {
+    content: "";
+    -webkit-box-flex: 1;
+    flex: 1 1 0%;
+    border-top: 1px solid #333;
+  }
+
+  &::before {
+    margin-right: 16px;
+  }
+
+  &::after {
+    margin-left: 16px;
+  }
+}
+
+/*============== END Messages ===============*/
+
 /*============== Header ===============*/
 .header {
   width: 100vw;

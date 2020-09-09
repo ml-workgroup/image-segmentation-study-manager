@@ -49,29 +49,15 @@
       render(data) {
         var messages = data.manual_segmentation.messages;
         if (messages != null && messages.length > 0) {
-          return messages[messages.length - 1].message;
+          messages = messages.filter(
+            (message) => !message.message.startsWith("**sys**")
+          );
+          if (messages != null && messages.length > 0) {
+            return messages[messages.length - 1].message;
+          }
         }
 
         return "";
-      },
-    },
-    {
-      type: "upload",
-      title: "Manual Segmentation",
-      data: "upload_mask",
-      ajax: {
-        // endpoint used, to upload a new or updated case mask file
-        url:
-          "/api/data_pool/project/" +
-          project_id +
-          "/case/segmentation?type=manual",
-        type: "POST",
-        idSrc: "id",
-      },
-      ajaxData: (formData) => {
-        if (editor.field("id").get() != "") {
-          formData.append("id", editor.field("id").get());
-        }
       },
     },
     {
@@ -102,6 +88,25 @@
         link.appendChild(download_button);
 
         return link.outerHTML;
+      },
+    },
+    {
+      type: "upload",
+      title: "Manual Segmentation",
+      data: "upload_mask",
+      ajax: {
+        // endpoint used, to upload a new or updated case mask file
+        url:
+          "/api/data_pool/project/" +
+          project_id +
+          "/case/segmentation?type=manual",
+        type: "POST",
+        idSrc: "id",
+      },
+      ajaxData: (formData) => {
+        if (editor.field("id").get() != "") {
+          formData.append("id", editor.field("id").get());
+        }
       },
     },
   ];
@@ -335,9 +340,9 @@
 
             if (data.manual_segmentation.status == "Queued") {
               assign_button.enable();
-            }
-
-            if (data.manual_segmentation.status == "Assigned") {
+            } else if (data.manual_segmentation.status == "Assigned") {
+              submit_button.enable();
+            } else if (data.manual_segmentation.status == "Rejected") {
               submit_button.enable();
             }
           }

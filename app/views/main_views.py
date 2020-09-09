@@ -78,6 +78,23 @@ def project_role_page(project_id, role):
         return render_template('pages/segmentation/cases.html', data=data)
 
 
+@main_blueprint.route('/project/<int:project_id>/admin/models')
+@login_required
+def project_models_page(project_id, role):
+    """
+    Only one admin can create and view new models.
+    """
+
+    # Data for various forms
+    project_form = ProjectForm()
+
+    # Build data object that contains all information for flask to use when building the page
+    data = dict(current_project=current_project,
+                role="admin", project_form=project_form)
+    
+    return render_template('pages/admin/models.html', data=data)
+
+
 @main_blueprint.route('/users')
 @login_required
 def users_page():

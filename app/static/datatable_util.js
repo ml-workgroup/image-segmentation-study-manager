@@ -295,36 +295,54 @@ function renderMessages(messages) {
 
   for (var i in messages) {
     var message_obj = messages[i];
-    var message_div = document.createElement("div");
-    message_div.className = "message";
+    if (message_obj.message.startsWith("**sys**")) {
+      var temp_message = message_obj.message.substr(7);
+      var message_div = document.createElement("div");
+      message_div.className = "meta-message";
+      message_div.innerHTML =
+        "<span><b>" +
+        temp_message +
+        "</b> <i>" +
+        message_obj.user.first_name +
+        " " +
+        message_obj.user.last_name +
+        " " +
+        message_obj.date +
+        "</i></span>";
 
-    console.log(user_id);
+      messages_container.appendChild(message_div);
+    } else {
+      var message_div = document.createElement("div");
+      message_div.className = "message";
 
-    // display the messages of "others" on the left side (like in other well known messengers)
-    if (message_obj.user.id != user_id) {
-      message_div.className += " other";
+      console.log(user_id);
+
+      // display the messages of "others" on the left side (like in other well known messengers)
+      if (message_obj.user.id != user_id) {
+        message_div.className += " other";
+      }
+
+      var sender_label = document.createElement("div");
+      sender_label.style = "font-style: italic";
+      sender_label.className = "row";
+      sender_label.innerHTML =
+        "<div class='col-6'><b>" +
+        message_obj.user.first_name +
+        " " +
+        message_obj.user.last_name +
+        "</b></div><div class='col-6'>" +
+        message_obj.date +
+        "</div>";
+
+      // sets the actual message
+      var message_content_div = document.createElement("div");
+      message_content_div.innerHTML = message_obj.message;
+
+      message_div.appendChild(sender_label);
+      message_div.appendChild(message_content_div);
+
+      messages_container.appendChild(message_div);
     }
-
-    var sender_label = document.createElement("div");
-    sender_label.style = "font-style: italic";
-    sender_label.className = "row";
-    sender_label.innerHTML =
-      "<div class='col-6'><b>" +
-      message_obj.user.first_name +
-      " " +
-      message_obj.user.last_name +
-      "</b></div><div class='col-6'>" +
-      message_obj.date +
-      "</div>";
-
-    // sets the actual message
-    var message_content_div = document.createElement("div");
-    message_content_div.innerHTML = message_obj.message;
-
-    message_div.appendChild(sender_label);
-    message_div.appendChild(message_content_div);
-
-    messages_container.appendChild(message_div);
   }
 
   return messages_container.outerHTML;

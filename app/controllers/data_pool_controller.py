@@ -4,6 +4,7 @@ import os
 from datetime import datetime
 
 from flask import current_app as app
+from flask_login import current_user
 from sqlalchemy import DateTime, Date
 
 from app import db, current_project
@@ -401,6 +402,10 @@ def assign_manual_segmentation(manual_segmentation = None, assignee = None, mess
     if assignee is None:
         app.logger.error("No assignee provided")
         return None
+        
+    # Append system message
+    sys_message = create_system_message(user = assignee, message = "Assign.", manual_segmentation= manual_segmentation)
+    manual_segmentation.messages.append(sys_message)
 
     manual_segmentation.status = StatusEnum.assigned
     manual_segmentation.assignee = assignee
@@ -417,18 +422,77 @@ def unclaim_manual_segmentation(manual_segmentation = None, message = None):
         app.logger.error("No manual segmentation provided")
         return None
 
-    if message is None:
-        message = create_message(user = manual_segmentation.assignee, message = "Unclaimed.", manual_segmentation= manual_segmentation)
+    # Append system message
+    status = "Queued."
+    message_user = current_user
+    if manual_segmentation.assignee is not None:
+        status = 'Unclaimed.'
+        message_user = manual_segmentation.assignee
+
+    sys_message = create_system_message(user = message_user, message = status, manual_segmentation= manual_segmentation)
+    manual_segmentation.messages.append(sys_message)
 
     manual_segmentation.status = StatusEnum.queued
     manual_segmentation.assignee = None
     manual_segmentation.assignee_date = None
 
-    app.logger.info(f"Messages: {manual_segmentation.messages} {message}")
-    manual_segmentation.messages.append(message)
+    if message is not None:
+        app.logger.info(f"Messages: {manual_segmentation.messages} {message}")
+        manual_segmentation.messages.append(message)
 
     return update_manual_segmentation(manual_segmentation)
+
+def submit_manual_segmentation(manual_segmentation = None, message = None):
     
+    if manual_segmentation is None:
+        app.logger.error("No manual segmentation provided")
+        return None
+
+    # Append system message
+    sys_message = create_system_message(user = current_user, message = "Submit.", manual_segmentation= manual_segmentation)
+    manual_segmentation.messages.append(sys_message)
+
+    manual_segmentation.status = StatusEnum.submitted
+
+    if message is not None:
+        manual_segmentation.messages.append(message)
+
+    return update_manual_segmentation(manual_segmentation)
+
+
+def reject_manual_segmentation(manual_segmentation = None, message = None):
+    
+    if manual_segmentation is None:
+        app.logger.error("No manual segmentation provided")
+        return None
+    
+    # Append system message
+    sys_message = create_system_message(user = current_user, message = "Rejected.", manual_segmentation= manual_segmentation)
+    manual_segmentation.messages.append(sys_message)
+
+    manual_segmentation.status = StatusEnum.rejected
+
+    if message is not None:
+        manual_segmentation.messages.append(message)
+
+    return update_manual_segmentation(manual_segmentation)
+
+def accept_manual_segmentation(manual_segmentation = None, message = None):
+    
+    if manual_segmentation is None:
+        app.logger.error("No manual segmentation provided")
+        return None
+        
+    # Append system message
+    sys_message = create_system_message(user = current_user, message = "Accepted.", manual_segmentation= manual_segmentation)
+    manual_segmentation.messages.append(sys_message)
+
+    manual_segmentation.status = StatusEnum.accepted
+
+    if message is not None:
+        manual_segmentation.messages.append(message)
+
+    return update_manual_segmentation(manual_segmentation)
 
 # END MANUAL SEGMENTATION
 
@@ -449,6 +513,15 @@ def get_all_messages_for_manual_segmentation(manual_segmentation_id = None):
 def create_message(user = None, message = None, manual_segmentation = None):
 
     message = Message(user = user, date = datetime.now(), message = message, manual_segmentation = manual_segmentation)
+
+    db.session.add(message)
+    db.session.commit()
+
+    return message
+
+def create_system_message(user = None, message = None, manual_segmentation = None):
+
+    message = Message(user = user, date = datetime.now(), message = ("**sys**" + message), manual_segmentation = manual_segmentation)
 
     db.session.add(message)
     db.session.commit()
