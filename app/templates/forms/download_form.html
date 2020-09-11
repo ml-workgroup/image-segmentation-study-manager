@@ -1,63 +1,110 @@
 <script>
-    function showDownloadModal(rowObject) {
-        // Row data dialog
-        $('#downloadButton').click(function (e) {
-            downloadCase(rowObject);
+  function showDownloadModal(rowObject) {
+    // Row data dialog
+    $("#downloadButton").click(function (e) {
+      e.stopPropagation();
+      e.preventDefault();
+      window.open(
+        "/api/data_pool/project/" +
+          project_id +
+          "/case/" +
+          rowObject.id +
+          "/download?select=archive"
+      );
+    });
 
-            // Change status if user decided to work on segmentation
-            let work_on_segmentation = $('#workOnSegmentationCheckbox').prop('checked');
-            if (work_on_segmentation){
-                rowObject["manual_segmentation"]["assignee_id"] = user_id;
-                rowObject["manual_segmentation"]["assigned_date"] = new Date(Date.now()).toUTCString();
-                rowObject["manual_segmentation"]["status"] = "assigned";
+    // Show modal
+    $("#downloadModal").modal("show");
 
-                sendRowUpdateToServer(rowObject);
-            }
-            location.reload();
-            e.preventDefault();
-        });
+    var model_table_def = [
+      {
+        title: "ID",
+        data: "id",
+      },
+      {
+        title: "Name",
+        data: "name",
+      },
+      {
+        title: "Model",
+        data: null,
+        render(data, type, row, meta) {
+          var link = document.createElement("a");
+          link.href =
+            "/api/data_pool/project/" +
+            project_id +
+            "/case/" +
+            rowObject.id +
+            "/download?select=automatic_segmentaion&id=" +
+            data.id;
 
-        // Show modal
-        $('#downloadModal').modal('show');
-    }
+          var download_button = document.createElement("button");
+          download_button.className = "btn";
+
+          var title_span = document.createElement("span");
+          title_span.style = "margin-right: 5px";
+          title_span.innerHTML = "Download";
+
+          var download_icon = document.createElement("i");
+          download_icon.className = "fas fa-image";
+
+          download_button.appendChild(title_span);
+          download_button.appendChild(download_icon);
+
+          link.appendChild(download_button);
+
+          return link.outerHTML;
+        },
+      },
+    ];
+
+    $("#modelTable").DataTable({
+      serverSide: true,
+      dom: "Bfrtip",
+      select: true,
+      stateSave: true,
+
+      ajax: {
+        url: "/api/data_pool/project/" + project_id + "/models/datatable",
+        type: "POST",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        data: (args) => JSON.stringify(args),
+      },
+
+      columns: model_table_def,
+      columnDefs: model_table_def,
+
+      scrollX: true,
+
+      buttons: [{ extend: "pageLength" }, { extend: "colvis" }],
+    });
+  }
 </script>
 
 <div class="modal fade" id="downloadModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-lg" role="document">
+  <div class="modal-dialog modal-lg" role="document">
+    <!-- Content body -->
+    <div class="modal-content">
+      <!-- Title -->
+      <div class="modal-header">
+        <h2 class="modal-title">Download Models</h2>
+      </div>
 
-        <!-- Content body -->
-        <div class="modal-content">
-
-            <!-- Title -->
-            <div class="modal-header">
-                <h2 class="modal-title">Download Data</h2>
-            </div>
-
-            <div class="modal-body">
-                <form id="downloadForm">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-
-                    <!-- Checkbox for working on segmentation -->
-                    <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="workOnSegmentationCheckbox">
-                        <label class="form-check-label" for="workOnSegmentationCheckbox">Work on segmentation</label>
-                    </div>
-
-                    <!-- Submit Button -->
-                    <div class="modal-footer">
-                        <button class="btn btn-primary" id="downloadButton">Download Case</button>
-                    </div>
-                </form>
-
-                <!-- Make file name appear on select -->
-                <script>
-
-                    $(".custom-file-input").on("change", function () {
-                        var fileName = $(this).val().split("\\").pop();
-                        $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
-                    });
-                </script>
-            </div>
-        </div>
+      <div class="modal-body">
+        <table id="modelTable" class="table table-striped table-hover nowrap">
+          <thead>
+            <tr>
+              <!-- table headers are added programmatically -->
+            </tr>
+          </thead>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="downloadButton">
+          Download whole picture
+        </button>
+      </div>
     </div>
+  </div>
 </div>

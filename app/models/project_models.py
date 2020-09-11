@@ -62,7 +62,7 @@ class Project(db.Model):
                                     In this case, the model needs to be defined. 
                                     The model then defines the concrete directory of the image
     """
-    def get_image_path(self, image_type = 'image', model_id = None, image_id = None):
+    def get_image_path(self, image_type = 'image', model_id = None, image_id = None, create_dir = True):
 
         if image_id is None:
             app.logger.error("No image id provided")
@@ -84,7 +84,7 @@ class Project(db.Model):
             app.logger.error(f"Image type {image_type} is not recognized. Returning none")
             return None
 
-        if not os.path.exists(image_dir):
+        if create_dir and not os.path.exists(image_dir):
             os.makedirs(image_dir, exist_ok = True)
 
         return os.path.join(image_dir, f'{image_id}.nii.gz')

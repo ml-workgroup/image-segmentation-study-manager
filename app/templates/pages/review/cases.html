@@ -233,6 +233,30 @@
         return link.outerHTML;
       },
     },
+    {
+      title: "Models",
+      data: null,
+      render(data, type, row, meta) {
+        var link = document.createElement("a");
+
+        var download_button = document.createElement("button");
+        download_button.className = "btn dataDownloadButton";
+
+        var title_span = document.createElement("span");
+        title_span.style = "margin-right: 5px";
+        title_span.innerHTML = "Download";
+
+        var download_icon = document.createElement("i");
+        download_icon.className = "fas fa-image";
+
+        download_button.appendChild(title_span);
+        download_button.appendChild(download_icon);
+
+        link.appendChild(download_button);
+
+        return link.outerHTML;
+      },
+    },
   ];
 
   $(document).ready(function () {
@@ -246,7 +270,9 @@
     Promise.all(setup_data_table(table_def, "#datatable", "#toggle_columns"))
       .then(() => {
         if (isDatatablesLoaded()) {
-          let table_editor_def = [...table_def];
+          let table_editor_def = table_def.filter(
+            (field_config) => ["Models"].indexOf(field_config.title) == -1
+          );
           table_editor_def.push(
             ...[
               // messages
@@ -335,7 +361,7 @@
 
           editor.on("initEdit", (e, node, data) => {
             editor_modus = "edit";
-            handle_initEdit(editor, table_def, e, node, data);
+            handle_initEdit(editor, table_editor_def, e, node, data);
           });
 
           /*
@@ -537,6 +563,18 @@
               review_button.enable();
             }
           }
+        });
+
+        $("#datatable").on("draw.dt", function () {
+          // Download data
+          $(".dataDownloadButton").click(function (event) {
+            event.stopPropagation();
+            event.preventDefault();
+
+            let table = $("#datatable").DataTable();
+            let rowObject = table.row($(this).closest("tr")).data();
+            showDownloadModal(rowObject);
+          });
         });
       });
   });

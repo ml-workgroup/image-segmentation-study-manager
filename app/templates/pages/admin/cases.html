@@ -136,6 +136,32 @@
           formData.append("id", editor.field("id").get());
         }
       },
+      render(data, type, row, meta) {
+        var link = document.createElement("a");
+        link.href =
+          "/api/data_pool/project/" +
+          project_id +
+          "/case/" +
+          row.id +
+          "/download?select=image";
+
+        var download_button = document.createElement("button");
+        download_button.className = "btn";
+
+        var title_span = document.createElement("span");
+        title_span.style = "margin-right: 5px";
+        title_span.innerHTML = "Download";
+
+        var download_icon = document.createElement("i");
+        download_icon.className = "fas fa-image";
+
+        download_button.appendChild(title_span);
+        download_button.appendChild(download_icon);
+
+        link.appendChild(download_button);
+
+        return link.outerHTML;
+      },
     },
     {
       type: "upload",
@@ -155,6 +181,59 @@
           formData.append("id", editor.field("id").get());
         }
       },
+      render(data, type, row, meta) {
+        //Hide button if no manual segmentation is set
+        if (!row.manual_segmentation) return "";
+
+        var link = document.createElement("a");
+        link.href =
+          "/api/data_pool/project/" +
+          project_id +
+          "/case/" +
+          row.id +
+          "/download?select=manual_segmentation";
+
+        var download_button = document.createElement("button");
+        download_button.className = "btn";
+
+        var title_span = document.createElement("span");
+        title_span.style = "margin-right: 5px";
+        title_span.innerHTML = "Download";
+
+        var download_icon = document.createElement("i");
+        download_icon.className = "fas fa-image";
+
+        download_button.appendChild(title_span);
+        download_button.appendChild(download_icon);
+
+        link.appendChild(download_button);
+
+        return link.outerHTML;
+      },
+    },
+    {
+      title: "Models",
+      data: null,
+      render(data, type, row, meta) {
+        var link = document.createElement("a");
+
+        var download_button = document.createElement("button");
+        download_button.className = "btn dataDownloadButton";
+
+        var title_span = document.createElement("span");
+        title_span.style = "margin-right: 5px";
+        title_span.innerHTML = "Download";
+
+        var download_icon = document.createElement("i");
+        download_icon.className = "fas fa-image";
+
+        download_button.appendChild(title_span);
+        download_button.appendChild(download_icon);
+
+        link.appendChild(download_button);
+
+        return link.outerHTML;
+      },
     },
   ];
 
@@ -169,6 +248,10 @@
     Promise.all(setup_data_table(table_def, "#datatable", "#toggle_columns"))
       .then(() => {
         if (isDatatablesLoaded()) {
+          editor_table_def = table_def.filter(
+            (field_config) => ["Models"].indexOf(field_config.title) == -1
+          );
+
           editor = new $.fn.dataTable.Editor({
             ajax: {
               create: {
@@ -186,7 +269,7 @@
             },
             table: "#datatable",
             idSrc: "id",
-            fields: table_def,
+            fields: editor_table_def,
           });
 
           // used for: see below
@@ -199,7 +282,7 @@
 
           editor.on("initEdit", (e, node, data) => {
             editor_modus = "edit";
-            handle_initEdit(editor, table_def, e, node, data);
+            handle_initEdit(editor, editor_table_def, e, node, data);
           });
 
           /* 
@@ -287,6 +370,18 @@
           scrollX: true,
 
           buttons: datatable_buttons,
+        });
+
+        $("#datatable").on("draw.dt", function () {
+          // Download data
+          $(".dataDownloadButton").click(function (event) {
+            event.stopPropagation();
+            event.preventDefault();
+
+            let table = $("#datatable").DataTable();
+            let rowObject = table.row($(this).closest("tr")).data();
+            showDownloadModal(rowObject);
+          });
         });
       });
   });

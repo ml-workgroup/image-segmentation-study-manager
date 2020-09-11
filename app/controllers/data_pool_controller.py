@@ -532,6 +532,16 @@ def create_system_message(user = None, message = None, manual_segmentation = Non
 
 # AUTOMATIC SEGMENTATION MODEL
 
+def get_all_models_for_project(project_id = None):
+
+    if project_id is None:
+        return None
+
+    models = AutomaticSegmentationModel.query.filter(AutomaticSegmentationModel.project_id == project_id).all()
+
+    return models
+
+
 """
 
 """
@@ -548,13 +558,20 @@ def find_automatic_segmentation_model(id = None):
 """
 
 """
-def create_automatic_segmentation_model(project_id = None):
+def create_automatic_segmentation_model(project_id = None, name = None):
 
     if project_id is None:
         app.logger.error("No project id provided for automatic segmentation model")
         return None
 
-    automatic_segmentation_model = AutomaticSegmentationModel(project_id = project_id)
+    automatic_segmentation_model = AutomaticSegmentationModel(project_id = project_id, name = name)
+
+    db.session.add(automatic_segmentation_model)
+    db.session.commit()
+
+    return automatic_segmentation_model
+
+def update_automatic_segmentation_model(automatic_segmentation_model):
 
     db.session.add(automatic_segmentation_model)
     db.session.commit()
@@ -579,12 +596,14 @@ def delete_automatic_segmentation_model(automatic_segmentation_model):
 """
 
 """
-def find_automatic_segmentation(id = None, image_id = None, project_id = None):
+def find_automatic_segmentation(id = None, image_id = None, model_id = None, project_id = None):
 
     if id:
         automatic_segmentation = AutomaticSegmentation.query.get(id)
+    elif image_id is not None and model_id is not None and project_id is not None:
+        automatic_segmentation = AutomaticSegmentation.query.filter(AutomaticSegmentation.image_id == image_id).filter(AutomaticSegmentation.model_id == model_id).filter(AutomaticSegmentation.project_id == project_id).first()
     elif image_id is not None and project_id is not None:
-        automatic_segmentation = AutomaticSegmentation.query.filter(AutomaticSegmentation.image_id == image_id).filter(AutomaticSegmentation.project_id == project_id).first()
+        automatic_segmentation = AutomaticSegmentation.query.filter(AutomaticSegmentation.image_id == image_id).filter(AutomaticSegmentation.project_id == project_id)
     else:
         app.logger.error("No parameters given for automatic segmentation search")
         

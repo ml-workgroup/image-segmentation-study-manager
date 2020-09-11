@@ -12,149 +12,12 @@
       type: "readonly",
       title: "ID",
       data: "id",
-      visible: false,
+      visible: true,
     },
     {
       title: "Name",
       data: "name",
       create: true,
-    },
-    {
-      title: "Accession Number",
-      data: "accession_number",
-    },
-    {
-      type: "select",
-      title: "Status",
-      name: "status",
-      data: "manual_segmentation.status",
-    },
-    {
-      type: "select",
-      title: "Split",
-      data: "split_type",
-    },
-    {
-      title: "Body Region",
-      data: "body_region",
-      create: true,
-    },
-    {
-      type: "select",
-      title: "Modality",
-      data: "modality",
-      create: true,
-    },
-    {
-      type: "select",
-      title: "Contrast",
-      data: "contrast_type",
-      create: true,
-    },
-    {
-      title: "Series Name",
-      data: "series_name",
-      visible: false,
-    },
-    {
-      title: "Series Description",
-      data: "series_description",
-      visible: false,
-    },
-    {
-      title: "Series Number",
-      data: "series_number",
-      visible: false,
-    },
-    {
-      title: "Series Instance UID",
-      data: "series_instance_uid",
-      visible: false,
-    },
-    {
-      title: "Patient Name",
-      data: "patient_name",
-      visible: false,
-      create: true,
-    },
-    {
-      type: "date",
-      title: "DOB",
-      data: "patient_dob",
-      visible: false,
-      create: true,
-      def: false,
-    },
-    {
-      type: "datetime",
-      title: "Insert Date",
-      data: "insert_date",
-      visible: false,
-    },
-    {
-      type: "datetime",
-      title: "Updated",
-      data: "last_updated",
-      visible: false,
-    },
-    {
-      title: "Institution",
-      data: "institution",
-      visible: false,
-      create: true,
-    },
-    {
-      title: "Custom 1",
-      data: "custom_1",
-      visible: false,
-    },
-    {
-      title: "Custom 2",
-      data: "custom_2",
-      visible: false,
-    },
-    {
-      title: "Custom 3",
-      data: "custom_3",
-      visible: false,
-    },
-    {
-      type: "upload",
-      title: "Image",
-      data: "upload_image",
-      create: true,
-      ajax: {
-        // endpoint used, to upload a new case file
-        // this is done before the actual case is created in the database
-        url: "/api/data_pool/project/" + project_id + "/case/image",
-        type: "POST",
-      },
-      // in the update screen the same endpoint is used and not changeable,
-      // but we can add data to the request like the ID which is set then
-      ajaxData: (formData) => {
-        if (editor.field("id").get() != "") {
-          formData.append("id", editor.field("id").get());
-        }
-      },
-    },
-    {
-      type: "upload",
-      title: "Manual Segmentation",
-      data: "upload_mask",
-      create: false, // a mask can only be added to existing images to reduce complexity in code
-      ajax: {
-        // endpoint used, to upload a new or updated case mask file
-        url:
-          "/api/data_pool/project/" +
-          project_id +
-          "/case/segmentation?type=manual",
-        type: "POST",
-      },
-      ajaxData: (formData) => {
-        if (editor.field("id").get() != "") {
-          formData.append("id", editor.field("id").get());
-        }
-      },
     },
   ];
 
@@ -173,15 +36,15 @@
             ajax: {
               create: {
                 type: "POST",
-                url: "/api/data_pool/project/" + project_id + "/case",
+                url: "/api/data_pool/project/" + project_id + "/model",
               },
               edit: {
                 type: "PUT",
-                url: "/api/data_pool/project/" + project_id + "/case?ids=_id_",
+                url: "/api/data_pool/project/" + project_id + "/model?ids=_id_",
               },
               remove: {
                 type: "DELETE",
-                url: "/api/data_pool/project/" + project_id + "/case?ids=_id_",
+                url: "/api/data_pool/project/" + project_id + "/model?ids=_id_",
               },
             },
             table: "#datatable",
@@ -200,56 +63,6 @@
           editor.on("initEdit", (e, node, data) => {
             editor_modus = "edit";
             handle_initEdit(editor, table_def, e, node, data);
-          });
-
-          /* 
-            if image was uploaded in CREATE screen but the data was not confirmed,
-            then we want to delete that data again. (Dismiss)
-
-            Therefore we need to store the ID of the data created when the image is uploaded.
-            This id is stored in currently_creating_case_id or is null otherwise.
-            */
-          var currently_creating_case_id = null;
-
-          //  the server sends us the image id if we uploaded it
-          $(editor.field("upload_image").input()).on("upload.editor", function (
-            e,
-            val
-          ) {
-            if (editor_modus == "create") {
-              currently_creating_case_id = val;
-            }
-          });
-
-          // if we submitted the form normally we don't want to delete the image anymore
-          editor.on("postSubmit", function (e, responseJson, data, action) {
-            console.log(responseJson);
-            currently_creating_case_id = null;
-          });
-
-          editor.on("closed", function () {
-            // if currently_creating_case_id is not null and we have to delete the image again
-            if (Number.isInteger(currently_creating_case_id)) {
-              $.ajax({
-                url:
-                  "/api/data_pool/project/" +
-                  project_id +
-                  "/case?ids=" +
-                  currently_creating_case_id,
-                type: "DELETE",
-              }).then(
-                () => {
-                  console.log(
-                    "Deleted image with id " + currently_creating_case_id
-                  );
-                  currently_creating_case_id = null;
-                },
-                (response) => {
-                  alert("Could not delete image again");
-                  console.log(response);
-                }
-              );
-            }
           });
         }
       })
@@ -273,12 +86,11 @@
           stateSave: true,
 
           ajax: {
-            url: "/api/data_pool/project/" + project_id + "/datatable",
+            url: "/api/data_pool/project/" + project_id + "/models/datatable",
             type: "POST",
             contentType: "application/json; charset=utf-8",
             dataType: "json",
             data: (args) => JSON.stringify(args),
-            // success: (data) => console.log(data),
           },
 
           columns: table_def,
@@ -300,6 +112,4 @@
   </thead>
 </table>
 
-{% endblock %} {% block forms %} {% include 'forms/image_upload_form.html' %} {%
-include 'forms/segmentation_upload_form.html' %} {% include
-'forms/download_form.html' %} {% endblock %}
+{% endblock %} {% block forms %} {% endblock %}

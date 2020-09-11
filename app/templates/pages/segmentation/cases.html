@@ -94,6 +94,32 @@
       type: "upload",
       title: "Manual Segmentation",
       data: "upload_mask",
+      render(data, type, row, meta) {
+        var link = document.createElement("a");
+        link.href =
+          "/api/data_pool/project/" +
+          project_id +
+          "/case/" +
+          row.id +
+          "/download?select=manual_segmentation";
+
+        var download_button = document.createElement("button");
+        download_button.className = "btn";
+
+        var title_span = document.createElement("span");
+        title_span.style = "margin-right: 5px";
+        title_span.innerHTML = "Download";
+
+        var download_icon = document.createElement("i");
+        download_icon.className = "fas fa-image";
+
+        download_button.appendChild(title_span);
+        download_button.appendChild(download_icon);
+
+        link.appendChild(download_button);
+
+        return link.outerHTML;
+      },
       ajax: {
         // endpoint used, to upload a new or updated case mask file
         url:
@@ -107,6 +133,30 @@
         if (editor.field("id").get() != "") {
           formData.append("id", editor.field("id").get());
         }
+      },
+    },
+    {
+      title: "Models",
+      data: null,
+      render(data, type, row, meta) {
+        var link = document.createElement("a");
+
+        var download_button = document.createElement("button");
+        download_button.className = "btn dataDownloadButton";
+
+        var title_span = document.createElement("span");
+        title_span.style = "margin-right: 5px";
+        title_span.innerHTML = "Download";
+
+        var download_icon = document.createElement("i");
+        download_icon.className = "fas fa-image";
+
+        download_button.appendChild(title_span);
+        download_button.appendChild(download_icon);
+
+        link.appendChild(download_button);
+
+        return link.outerHTML;
       },
     },
   ];
@@ -357,7 +407,10 @@
           });
 
           // Download data
-          $(".dataDownloadButton").click(function () {
+          $(".dataDownloadButton").click(function (event) {
+            event.stopPropagation();
+            event.preventDefault();
+
             let table = $("#datatable").DataTable();
             let rowObject = table.row($(this).closest("tr")).data();
             showDownloadModal(rowObject);

@@ -80,7 +80,7 @@ def project_role_page(project_id, role):
 
 @main_blueprint.route('/project/<int:project_id>/admin/models')
 @login_required
-def project_models_page(project_id, role):
+def project_models_page(project_id):
     """
     Only one admin can create and view new models.
     """

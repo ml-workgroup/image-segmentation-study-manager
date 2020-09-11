@@ -23,7 +23,7 @@ from nibabel.filebasedimages import SerializableImage
 
 from app import app, db, current_project
 from app.models.config import DATE_FORMAT, DATETIME_FORMAT
-from app.models.data_pool_models import StatusEnum, SplitType, Image, ManualSegmentation, AutomaticSegmentation, Message, Modality, ContrastType
+from app.models.data_pool_models import StatusEnum, SplitType, Image, ManualSegmentation, AutomaticSegmentationModel, AutomaticSegmentation, Message, Modality, ContrastType
 
 from app.utils import is_project_reviewer, is_project_user, technical_admin_required, project_admin_required, project_reviewer_required, project_user_required
 
@@ -632,7 +632,7 @@ def upload_segmentation(project_id):
 
         # TODO store image as automatic segmentation
 
-        automatic_segmentation = data_pool_controller.find_automatic_segmentation(image_id = image.id, project_id = project.id)
+        automatic_segmentation = data_pool_controller.find_automatic_segmentation(image_id = image.id, model_id = model_id, project_id = project.id)
 
         if automatic_segmentation is None:
             automatic_segmentation = data_pool_controller.create_automatic_segmentation(project = project, image_id = image.id, model_id = model.id)
@@ -896,7 +896,6 @@ def download_case(project_id, case_id):
     image = data_pool_controller.find_image(id = case_id)
     manual_segmentation = image.manual_segmentation
 
-    #TODO for Automatic Segmentation
     file_type = request.args.get('select')#image,manual_segmentation, automatic_segmentaion, archive
     
     if image is None:
@@ -916,6 +915,21 @@ def download_case(project_id, case_id):
             return flask.send_file(image.manual_segmentation.__get_fn__(), as_attachment=True)
         except FileNotFoundError:
             flask.abort(404)
+    elif file_type == "automatic_segmentaion":
+        model_id = request.args.get('id')
+        automatic_segmentation = data_pool_controller.find_automatic_segmentation(image_id = image.id, model_id = model_id, project_id = project.id)
+
+        if automatic_segmentation is None:
+            flask.abort(404)
+
+        image_path = project.get_image_path(image_type = 'automatic_segmentation', model_id = model_id, image_id = image.id, create_dir = False)
+        
+        if not os.path.exists(image_path):
+            flask.abort(404)
+        try:
+            return flask.send_file(image_path, as_attachment=True)
+        except FileNotFoundError:
+            flask.abort(404)
     elif file_type == "archive":
         # Create zip file
         data = io.BytesIO()
@@ -925,6 +939,13 @@ def download_case(project_id, case_id):
             if image.manual_segmentation != None:
                 z.write(image.manual_segmentation.__get_fn__(), 'manual_segmentation.nii.gz')
         
+            automatic_segmentations = data_pool_controller.find_automatic_segmentation(image_id = image.id, project_id = project.id)
+            for automatic_segmentation in automatic_segmentations:
+                image_path = project.get_image_path(image_type = 'automatic_segmentation', model_id = automatic_segmentation.model_id, image_id = image.id, create_dir = False)
+
+                if os.path.exists(image_path):
+                    z.write(image_path, f'automatic_segmentation_{automatic_segmentation.model_id}.nii.gz')
+
         data.seek(0)
 
         # Download file
@@ -937,7 +958,219 @@ def download_case(project_id, case_id):
     else:
         abort(404)
 
+
+"""
+Get all automatic segmentation model of a project
+"""
+@data_pool_service.route('/project/<int:project_id>/models/datatable', methods = ['POST'])
+@project_user_required
+def models_datatable(project_id):
+
+    project = project_controller.find_project(id = project_id)
     
+    if project is None:
+        return {
+            'success': False,
+            'error': "No valid project id provided", 
+            'message': "The project id provided in the url /project/PROJECT_ID/case/image is not a valid project id"
+        }, 400
+
+    # See https://datatables.net/manual/server-side for all included parameters
+    datatable_parameters = json.loads(request.data)
+
+    offset = datatable_parameters["start"]
+    limit = datatable_parameters["length"]
+
+    app.logger.info(f"Requested {offset} - {offset + limit}")
+
+    # Build query
+    query = db.session.query(AutomaticSegmentationModel)
+
+    # only Images to requested project_id
+    filter_query = query.filter(AutomaticSegmentationModel.project_id == project_id)
+    
+    r = request
+    
+    # Add sorting
+    order_by_directives = datatable_parameters["order"]
+
+    # only take the first column we should order by
+    first_order_by = order_by_directives[0]
+    first_order_by_column_id = first_order_by["column"]
+    first_order_by_dir = first_order_by["dir"]
+
+    columns = datatable_parameters["columns"]
+
+    first_oder_by_column = columns[first_order_by_column_id]
+    first_oder_by_column_name = first_oder_by_column["name"]
+
+    sorting_direction = asc if first_order_by_dir == "asc" else desc
+
+    # Ordering only enabled for columns "status", "name", "image_valid"
+    if first_oder_by_column_name == "id":
+        filter_query = filter_query.order_by(sorting_direction(AutomaticSegmentationModel.id))
+    elif first_oder_by_column_name == "name":
+        filter_query = filter_query.order_by(sorting_direction(AutomaticSegmentationModel.name))
+
+    # Searching
+    searchable_columns = [AutomaticSegmentationModel.name, AutomaticSegmentationModel.id]
+    search_input = datatable_parameters["search"]["value"]
+    if search_input != "":
+        # Search in all searchable columns
+        filters = [column.like(f"%{search_input}%") for column in searchable_columns]
+        filter_query = filter_query.filter(or_(*filters))
+
+    # Limit records
+    records = filter_query.slice(offset, offset + limit).all()
+    records_total = query.count()
+    records_filtered = filter_query.count()
+
+    if (len(records) > 0):
+        app.logger.info(records[0].as_dict())
+
+    data = [record.as_dict() for record in records]
+    response = {
+        'draw': datatable_parameters["draw"],
+        'recordsTotal': records_total,
+        'recordsFiltered': records_filtered,
+        'data': data,
+        'options': {
+        }
+    }
+
+    return jsonify(response)
+
+"""
+Get all automatic segmentation model of a project
+"""
+@data_pool_service.route("/project/<int:project_id>/models")
+@login_required
+def get_automatic_segmentation_model_of_project(project_id):
+
+    models = data_pool_controller.get_all_models_for_project(project_id = project_id)
+
+    data = {
+        "models": [model.as_dict() for model in models]
+    }
+
+    return jsonify(data)    
+
+
+"""
+Handling creation of metadata for model
+"""
+@data_pool_service.route('/project/<int:project_id>/model', methods=['POST'])
+@login_required
+@project_admin_required
+def create_automatic_segmentation_model_data(project_id):
+
+    project = project_controller.find_project(id = project_id)
+
+    if project is None:
+        return {
+            'success': False,
+            'error': "No valid project id provided", 
+            'message': "The project id provided in the url /project/PROJECT_ID/... is not a valid project id"
+        }, 400
+
+    model_meta_data = get_case_data_from_request(request)
+
+    if model_meta_data is None:
+        app.logger.info(f"Data in json? {request.json}")
+        return {'success': False}, 400
+
+    model = data_pool_controller.create_automatic_segmentation_model(project_id = project_id, name = model_meta_data['name'] )
+
+    return {
+        'success': True,
+        'data': model.as_dict()
+    }, 200
+
+"""
+Handling changes of meta data for model
+"""
+@data_pool_service.route('/project/<int:project_id>/model', methods=['PUT'])
+@login_required
+@project_user_required
+def update_automatic_segmentation_model_data(project_id):
+
+    project = project_controller.find_project(id = project_id)
+
+    if project is None:
+        return {
+            'success': False,
+            'error': "No valid project id provided", 
+            'message': "The project id provided in the url /project/PROJECT_ID/... is not a valid project id"
+        }, 400
+
+    model_ids = request.args.get('ids')
+
+    if model_ids is None:
+        return {
+            'success': False,
+            'error': "No valid model id(s) provided", 
+            'message': "The model id provided in the url .../model?ids=MODEL_ID1,MODEL_ID2... is/are not valid model id(s)"
+        }, 400
+
+    
+    update_model_data = get_case_data_from_request(request)
+
+    # update all specified models
+    for model_id in model_ids.split(','):
+
+        # Find the model 
+        model = data_pool_controller.find_automatic_segmentation_model(id = model_id)
+
+        model.name = update_model_data['name']
+
+        ### Update model object ###
+        data_pool_controller.update_automatic_segmentation_model(model)
+
+    return {
+        'success': True,
+        'data': model.as_dict()
+    }, 200
+
+"""
+Delete a model or multiple models 
+"""
+@data_pool_service.route('/project/<int:project_id>/model', methods=["DELETE"])
+@login_required
+@project_admin_required
+def delete_automatic_segmentation_model(project_id):
+
+    project = project_controller.find_project(id = project_id)
+
+    if project is None:
+        return {
+            'success': False,
+            'error': "No valid project id provided", 
+            'message': "The project id provided in the url /project/PROJECT_ID/... is not a valid project id"
+        }, 400
+
+    model_ids = request.args.get('ids')
+
+    if model_ids is None:
+        return {
+            'success': False,
+            'error': "No valid model id(s) provided", 
+            'message': "The model id provided in the url .../model?ids=MODEL_ID1,MODEL_ID2... is/are not valid model id(s)"
+        }, 400
+
+    
+    update_model_data = get_case_data_from_request(request)
+
+    # update all specified models
+    for model_id in model_ids.split(','):
+
+         # Find the model 
+        model = data_pool_controller.find_automatic_segmentation_model(id = model_id)
+
+        # delete database object
+        data_pool_controller.delete_automatic_segmentation_model(model)
+
+    return {'success': True}, 200
+
 
 """
 This should rather be done with accessor functions like here:

@@ -78,7 +78,7 @@ def setup_example_data(n_projects=2, n_images_per_project=50):
 
         projects.append(project)
 
-        automatic_segmentation_model = data_pool_controller.create_automatic_segmentation_model(project_id = project.id)
+        automatic_segmentation_model = data_pool_controller.create_automatic_segmentation_model(project_id = project.id, name = "AutoSeg 01")
 
         for i in trange(n_images_per_project, desc='generating sample data'):
 

@@ -264,6 +264,7 @@ class ManualSegmentation(DataPool):
 class AutomaticSegmentationModel(db.Model):
     __tablename__ = 'data_pool_automatic_segmentation_models'
     id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.Unicode(255))
     project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False, )
 
     # Relationships
@@ -271,6 +272,7 @@ class AutomaticSegmentationModel(db.Model):
 
     def as_dict(self):
         return dict(id = self.id,
+                    name = self.name,
                     project_id = self.project_id)
 
 class AutomaticSegmentation(DataPool):
