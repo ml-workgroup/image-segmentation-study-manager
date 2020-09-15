@@ -197,7 +197,7 @@ function handle_initCreate(editor) {
 
   table_def.forEach((field) => {
     // Only fields with the attribute create(: true) are shown
-    if (!field.create) {
+    if (!field.create && field.name) {
       editor.hide(field.name);
     }
   });
