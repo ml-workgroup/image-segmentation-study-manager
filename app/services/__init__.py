@@ -3,11 +3,12 @@
 
 from flask import Blueprint
 
+from .webdav_service import webdav_service
 from .data_pool_service import data_pool_service
 from .project_service import project_service
 from .user_service import user_service
 
-all_services = [data_pool_service, project_service, user_service]
+all_services = [webdav_service, data_pool_service, project_service, user_service]
 
 
 def register_blueprints(app, url_prefix = "/api", exempt_from_csrf = False, csrf_protect = None):

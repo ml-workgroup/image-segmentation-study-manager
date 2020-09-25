@@ -4,8 +4,8 @@ MAINTAINER Hinrich Winther <winther.hinrich@mh-hannover.de>
 
 RUN apt-get update
 RUN apt-get install -y \
-    gcc \
-    nginx
+	gcc \
+	nginx
 
 EXPOSE 80
 
@@ -19,6 +19,7 @@ RUN pip install -r requirements.txt
 
 # Don't copy the complete current directory in order to make caching work when running docker build
 ADD app /issm/app
+ADD webdav /issm/webdav
 ADD migrations /issm/migrations
 ADD tests /issm/tests
 
@@ -27,11 +28,12 @@ COPY ./*.py ./*.ini Version /issm/
 COPY docker/local_settings.py app/local_settings.py
 COPY docker/uwsgi.ini /issm/uwsgi.ini
 COPY docker/nginx.conf /etc/nginx/sites-enabled/default
+COPY webdav.py /issm/webdav.py
 
 # reduce image size
 RUN apt-get --purge autoremove -y && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* 
+	apt-get clean && \
+	rm -rf /var/lib/apt/lists/* 
 
 ENV APP_NAME=ISSM \
 	SECRET_KEY="changeme" \ 
@@ -48,8 +50,9 @@ ENV APP_NAME=ISSM \
 	MAIL_USERNAME="" \
 	MAIL_PASSWORD="" \
 	SENDGRID_API_KEY="" \
-    VERSION=
+	VERSION=
 
 ENTRYPOINT uwsgi --ini /issm/uwsgi.ini && \
-           /etc/init.d/nginx start && \
-           tail -f /var/log/nginx/* /var/log/issm.log
+	/usr/local/bin/python /issm/webdav.py && \
+	/etc/init.d/nginx start && \
+	tail -f /var/log/nginx/* /var/log/issm.log /var/log/issm_webdav.log

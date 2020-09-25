@@ -25,3 +25,9 @@ nibabel==3.0.1
 numpy==1.18.1
 
 tqdm
+
+# Webdav
+wsgidav==3.0.3
+cheroot==8.4.5
+lxml==4.5.2
+requests==2.24.0

@@ -7,13 +7,16 @@ services:
     restart: "always"
     container_name: issm
     entrypoint: ""
-    command: /bin/sh -c "./manage.py init_db && ./manage.py runserver --host=0.0.0.0" #for testing
+    command: /bin/sh -c "python ./webdav.py & ./manage.py init_db && ./manage.py runserver --host=0.0.0.0" #for testing
     ports:
       - "5000:5000"
+      - "5008:8008" # Webdav
     volumes:
-        # mounted project for development purposes
+      # mounted project for development purposes
       - ./app:/issm/app
       - ./docker/local_settings.py:/issm/app/local_settings.py # see Dockerfile, the file is per default copied, but we override the app dir for development
+      - ./webdav.py:/issm/webdav.py
+      - ./webdav:/issm/webdav
       - ./manage.py:/issm/manage.py
       # mount data (database & images) to outside of container
       - ./data:/data
@@ -23,7 +26,7 @@ services:
       # Database
       - DATABASE_URI=sqlite:////data/issm.sqlite
       # default admin user when no user exists
-      - ADMIN=admin@issm.org 
+      - ADMIN=admin@issm.org
       - ADMIN_PW=admin
       #  Flask-User Settings
       - APP_NAME=issm
@@ -38,4 +41,3 @@ services:
       - MAIL_PASSWORD=""
       #  Sendgrid Settings
       - SENDGRID_API_KEY=""
-      
