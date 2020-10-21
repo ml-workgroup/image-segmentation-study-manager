@@ -1,7 +1,6 @@
 <!-- Project configuration modal -->
 <script>
   function show_project_delete_modal(projectObj, allUsers) {
-    console.log(projectObj);
     $("#project_delete_form_title").html(
       "Delete " + projectObj["long_name"] + "?"
     );
@@ -15,9 +14,9 @@
         type: "DELETE",
       }).then(
         () => {
-          console.log("Deleted project with id " + projectObj["id"]);
-          datatable.ajax.reload();
           $("#projectDeleteModal").modal("toggle");
+          console.log("Deleted project with id " + projectObj["id"]);
+          $("#project_overview_table").DataTable().ajax.reload();
         },
         (response) => {
           alert("Could not delete project again");

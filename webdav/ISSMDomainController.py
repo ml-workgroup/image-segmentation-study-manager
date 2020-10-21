@@ -54,9 +54,15 @@ class ISSMDomainController(BaseDomainController):
         print("User : {} , Password : {}, Realm: {}".format(user_name,password,realm))
 
         user_data = self.get_user_data_by_password(user_name, password)
+        environ["wsgidav.auth.roles"] = "user"
 
-        print("{}".format(user_data))
+        if environ is not None:        
+           print("environ : {} ".format(environ.get("PATH_INFO")))
+           
+           #print("environ : {} ".format(environ))
         
+        print("{}".format(user_data))
+
         if user_data and user_data['success'] == True:
             return True
         return False

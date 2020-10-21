@@ -20,7 +20,6 @@
                 processData: false,
                 success: function() {
                     // Change status
-                    console.log("blaaaa");
                     imageObj["manual_segmentation"]["status"] = "submitted";
                     sendRowUpdateToServer(imageObj);
                     location.reload();

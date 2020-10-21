@@ -10,7 +10,7 @@ from sqlalchemy import DateTime, Date
 from app import db, current_project
 
 from app.models.config import DATE_FORMAT, DATETIME_FORMAT
-from app.models.project_models import Project, ProjectsUsers
+from app.models.project_models import Project, ProjectsUsers, ProjectsAdmins, ProjectsReviewers
 from app.models.user_models import User
 from app.models.data_pool_models import StatusEnum, SplitType, Image, ManualSegmentation, AutomaticSegmentation, AutomaticSegmentationModel, Message, Modality, ContrastType
 
@@ -21,7 +21,9 @@ def get_all_users_for_project(project_id = None):
     if project_id is None:
         return None
 
-    users = User.query.join(ProjectsUsers, User.id == ProjectsUsers.user_id).filter(ProjectsUsers.project_id == project_id).all()
+    users = User.query.join(ProjectsUsers, User.id == ProjectsUsers.user_id).filter(ProjectsUsers.project_id == project_id).all() + \
+         User.query.join(ProjectsAdmins, User.id == ProjectsAdmins.user_id).filter(ProjectsAdmins.project_id == project_id).all() + \
+         User.query.join(ProjectsReviewers, User.id == ProjectsReviewers.user_id).filter(ProjectsReviewers.project_id == project_id).all()
     
     return users
 

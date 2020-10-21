@@ -32,46 +32,54 @@
     // Handle interactions with the table and its elements
     $("#project_overview_table").on("draw.dt", function () {
       // Choose button
-      $(".chooseProjectButton").click(function () {
-        // Get project object of this row
-        let row = $(this).closest("tr");
-        let rowObject = datatable.row(row).data();
+      $(".chooseProjectButton")
+        .unbind()
+        .click(function () {
+          // Get project object of this row
+          let row = $(this).closest("tr");
+          let rowObject = datatable.row(row).data();
 
-        // Find project id and redirect to correct page
-        let projectID = rowObject["id"];
-        window.location.replace("/project/" + projectID);
-      });
+          // Find project id and redirect to correct page
+          let projectID = rowObject["id"];
+          window.location.replace("/project/" + projectID);
+        });
 
       // Edit button
-      $(".editProjectButton").click(function () {
-        // Get project object of this row
-        let row = $(this).closest("tr");
-        let projectObject = datatable.row(row).data();
+      $(".editProjectButton")
+        .unbind()
+        .click(function () {
+          // Get project object of this row
+          let row = $(this).closest("tr");
+          let projectObject = datatable.row(row).data();
 
-        $.get({
-          url: "/api/user/all",
-        }).then((response) => {
-          show_project_modal(projectObject, response.users);
+          $.get({
+            url: "/api/user/all",
+          }).then((response) => {
+            show_project_modal(projectObject, response.users);
+          });
         });
-      });
 
       // Delete button
-      $(".deleteProjectButton").click(function () {
-        // Get project object of this row
-        let row = $(this).closest("tr");
-        let projectObject = datatable.row(row).data();
+      $(".deleteProjectButton")
+        .unbind()
+        .click(function () {
+          // Get project object of this row
+          let row = $(this).closest("tr");
+          let projectObject = datatable.row(row).data();
 
-        show_project_delete_modal(projectObject);
-      });
+          show_project_delete_modal(projectObject);
+        });
 
       // New project
-      $("#addProjectButton").click(function () {
-        $.get({
-          url: "/api/user/all",
-        }).then((response) => {
-          show_project_modal(null, response.users);
+      $("#addProjectButton")
+        .unbind()
+        .click(function () {
+          $.get({
+            url: "/api/user/all",
+          }).then((response) => {
+            show_project_modal(null, response.users);
+          });
         });
-      });
     });
   });
 </script>

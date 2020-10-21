@@ -31,6 +31,23 @@
     },
     {
       type: "select",
+      title: "Assigned User",
+      name: "assigned_user",
+      data: "manual_segmentation.assignee.email",
+      render: function (data, type, full, meta) {
+        if (
+          full.manual_segmentation &&
+          full.manual_segmentation.assignee &&
+          full.manual_segmentation.assignee.email
+        ) {
+          return full.manual_segmentation.assignee.email;
+        } else return "";
+      },
+      create: false,
+      visible: true,
+    },
+    {
+      type: "select",
       title: "Split",
       data: "split_type",
     },
@@ -280,6 +297,51 @@
           editor.on("initCreate", () => {
             editor_modus = "create";
             handle_initCreate(editor);
+          });
+
+          editor.on("open", function (e, mode, action) {
+            // replace the messages div with the actual messages
+            if (action == "edit") {
+              var assign_field = editor.field("status");
+
+              if (assign_field)
+                $("#DTE_Field_status").on("change", function () {
+                  var user_dropdown = $("#DTE_Field_assigned_user")
+                    .parent()
+                    .parent()
+                    .parent();
+                  if (this.value === "assigned") {
+                    if (user_dropdown.is(":visible"))
+                      //Dropdown field allready visible
+                      return;
+                    user_dropdown.show();
+                  } else {
+                    //Hide the user selection
+                    if (user_dropdown.is(":visible")) user_dropdown.hide();
+                  }
+                });
+
+              var messages_field = editor.field("messages");
+
+              var container = messages_field.dom.container[0];
+
+              container.style = "display: block;";
+
+              var selectedRows = datatable.rows({ selected: true });
+              var messages = selectedRows.data()[0].manual_segmentation
+                .messages;
+
+              $(".DTE_Field_Name_messages").html(renderMessages(messages));
+
+              if (!is_project_admin) {
+                //Hide the Image upload field
+                console.log($(editor.field("upload_image").input()));
+                $(editor.field("upload_image").input())
+                  .parentsUntil("div.DTE_Field_Type_upload")
+                  .parent()
+                  .hide();
+              }
+            }
           });
 
           editor.on("initEdit", (e, node, data) => {

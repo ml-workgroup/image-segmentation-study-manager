@@ -9,6 +9,19 @@
     $("#newContrastType").val("");
     $("#newModality").val("");
 
+    // Prevent Form submitting
+    $("#projectForm")
+      .on("keyup keypress", function (e) {
+        var keyCode = e.keyCode || e.which;
+        if (keyCode === 13) {
+          e.preventDefault();
+          return false;
+        }
+      })
+      .submit(function (e) {
+        e.preventDefault();
+      });
+
     var creating_new_project = projectObj == null;
 
     // If projectObj is null, a new project needs to be created
@@ -75,33 +88,35 @@
     }
 
     // Submit button
-    $("#submitBtn").click(function (e) {
-      e.preventDefault();
+    $("#submitBtn")
+      .unbind()
+      .click(function (e) {
+        e.preventDefault();
 
-      let url =
-        "/api/project" +
-        (creating_new_project ? "" : "?id=" + projectObj["id"]);
-      let type = creating_new_project ? "POST" : "PUT";
+        let url =
+          "/api/project" +
+          (creating_new_project ? "" : "?id=" + projectObj["id"]);
+        let type = creating_new_project ? "POST" : "PUT";
 
-      let form = document.querySelector("#projectForm");
-      let formData = new FormData(form);
+        let form = document.querySelector("#projectForm");
+        let formData = new FormData(form);
 
-      $.ajax({
-        url: url,
-        type: type,
-        data: formData,
-        contentType: false,
-        processData: false,
-        success: function () {
-          $("#projectConfigModal").modal("toggle");
-          $("#project_overview_table").DataTable().ajax.reload();
-        },
-        error: function (XMLHttpRequest, textStatus, errorThrown) {
-          console.log(XMLHttpRequest, textStatus, errorThrown);
-          alert(textStatus);
-        },
+        $.ajax({
+          url: url,
+          type: type,
+          data: formData,
+          contentType: false,
+          processData: false,
+          success: function () {
+            $("#projectConfigModal").modal("toggle");
+            $("#project_overview_table").DataTable().ajax.reload();
+          },
+          error: function (XMLHttpRequest, textStatus, errorThrown) {
+            console.log(XMLHttpRequest, textStatus, errorThrown);
+            alert(textStatus);
+          },
+        });
       });
-    });
 
     $("#projectConfigModal").modal("show");
   }
@@ -273,7 +288,7 @@
 
     $(function () {
       /**** Functionality to add multiple users to project ****/
-      $(document).on("click", "#addUserButton", function (e) {
+      $("#addUserButton").on("click", function (e) {
         e.preventDefault();
 
         // Populate data from form
@@ -291,7 +306,7 @@
       });
 
       /**** Functionality to add new split types****/
-      $(document).on("click", "#newSplitTypeBtn", function (e) {
+      $("#newSplitTypeBtn").on("click", function (e) {
         e.preventDefault();
         // Populate data from form and delete old text
         let name = $("#newSplitType").val();
@@ -300,7 +315,7 @@
       });
 
       /**** Functionality to add new contrast types****/
-      $(document).on("click", "#newContrastTypeBtn", function (e) {
+      $("#newContrastTypeBtn").on("click", function (e) {
         e.preventDefault();
         // Populate data from form and delete old text
         let name = $("#newContrastType").val();
@@ -309,7 +324,7 @@
       });
 
       /**** Functionality to add new contrast types****/
-      $(document).on("click", "#newModalityBtn", function (e) {
+      $("#newModalityBtn").on("click", function (e) {
         e.preventDefault();
         // Populate data from form and delete old text
         let name = $("#newModality").val();
@@ -397,7 +412,7 @@
                     class="btn btn-add"
                     id="newSplitTypeBtn"
                   >
-                    <i class="fas fa-plus" style="color: #0099cc;"></i>
+                    <i class="fas fa-plus" style="color: #0099cc"></i>
                   </button>
                 </div>
               </div>
@@ -420,7 +435,7 @@
                     class="btn btn-add"
                     id="newContrastTypeBtn"
                   >
-                    <i class="fas fa-plus" style="color: #0099cc;"></i>
+                    <i class="fas fa-plus" style="color: #0099cc"></i>
                   </button>
                 </div>
               </div>
@@ -439,7 +454,7 @@
                 </div>
                 <div class="col-auto">
                   <button type="button" class="btn btn-add" id="newModalityBtn">
-                    <i class="fas fa-plus" style="color: #0099cc;"></i>
+                    <i class="fas fa-plus" style="color: #0099cc"></i>
                   </button>
                 </div>
               </div>
@@ -454,7 +469,7 @@
           <label>Add new User</label>
           <div class="form-row align-items-center" id="addUserContainer">
             <div class="col-auto">
-              <select id="newUserSelect" class="custom-select"> </select>
+              <select id="newUserSelect" class="custom-select"></select>
             </div>
             <div class="col-auto">
               <select id="newUserRole" class="custom-select">
@@ -465,7 +480,7 @@
             </div>
             <div class="col-auto">
               <button type="button" class="btn btn-add" id="addUserButton">
-                <i class="fas fa-plus" style="color: #0099cc;"></i>
+                <i class="fas fa-plus" style="color: #0099cc"></i>
               </button>
             </div>
           </div>

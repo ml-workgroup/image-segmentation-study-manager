@@ -204,6 +204,9 @@
         }
       },
       render(data, type, row, meta) {
+        if (!row.manual_segmentation) {
+          return "";
+        }
         //Hide button if no manual segmentation is set
         if (!row.manual_segmentation) return "";
 
@@ -317,7 +320,7 @@
           editor.on("open", function (e, mode, action) {
             // replace the messages div with the actual messages
             if (action == "edit") {
-              var assign_field = reviewEditor.field("status");
+              var assign_field = editor.field("status");
 
               if (assign_field)
                 $("#DTE_Field_status").on("change", function () {
@@ -336,7 +339,7 @@
                   }
                 });
 
-              var messages_field = reviewEditor.field("messages");
+              var messages_field = editor.field("messages");
 
               var container = messages_field.dom.container[0];
 
@@ -486,18 +489,14 @@
             // replace the messages div with the actual messages
             if (action == "edit") {
               var messages_field = reviewEditor.field("messages");
-              console.log(messages_field);
 
               var container = messages_field.dom.container[0];
-              console.log(container);
 
               container.style = "display: block;";
 
               var selectedRows = datatable.rows({ selected: true });
               var messages = selectedRows.data()[0].manual_segmentation
                 .messages;
-
-              console.log("Messages", messages);
 
               // inject the messages of the manual_segmentation into hidden field
               container.innerHTML = renderMessages(messages);
@@ -507,15 +506,154 @@
           reviewEditor.on("initEdit", (e, node, data) =>
             handle_initEdit(reviewEditor, review_table_def, e, node, data)
           );
+
+          // ############################
+          // ### Define Assign Editor ###
+          // ############################
+
+          // select specific fields from general configuration
+          assign_table_def = [];
+
+          // fields for review which can be edited
+          assign_table_def.push(
+            ...[
+              table_def
+                .filter((fc) => fc.name == "status")
+                .map((status_field_config) => {
+                  // allow for the reviewer only to select 'assigned'
+                  var filtered_options = status_field_config.options.filter(
+                    (option) => ["assigned"].indexOf(option.value) != -1
+                  );
+
+                  var config_copy = Object.assign({}, status_field_config);
+
+                  config_copy.options = filtered_options;
+                  config_copy.attr = {
+                    disabled: true,
+                  };
+                  return config_copy;
+                })[0],
+              table_def.filter((fc) => fc.name == "assigned_user"),
+              // messages
+              // implemented as hidden field which is later being replaced in the DOM
+              {
+                targets: -1,
+                data: null,
+                type: "hidden",
+                name: "messages",
+              },
+              // new message to append to the messages of the manual_segmentation.messages
+              {
+                title: "New Message",
+                label: "New Message",
+                data: "new_message",
+                name: "new_message",
+                type: "textarea",
+              },
+            ]
+          );
+
+          assign_editor = new $.fn.dataTable.Editor({
+            ajax: {
+              edit: {
+                type: "PUT",
+                url: "/api/data_pool/project/" + project_id + "/case?ids=_id_",
+              },
+            },
+            table: "#datatable",
+            idSrc: "id",
+            fields: assign_table_def,
+          });
+
+          assign_editor.on("initCreate", () => {
+            handle_initCreate(editor);
+          });
+
+          assign_editor.on("open", function (e, mode, action) {
+            // replace the messages div with the actual messages
+            if (action == "edit") {
+              $("#DTE_Field_status").val("assigned");
+
+              var user_dropdown = $("#DTE_Field_assigned_user")
+                .parent()
+                .parent()
+                .parent();
+
+              user_dropdown.show();
+
+              var messages_field = assign_editor.field("messages");
+
+              var container = messages_field.dom.container[0];
+
+              container.style = "display: block;";
+
+              var selectedRows = datatable.rows({ selected: true });
+              var messages = selectedRows.data()[0].manual_segmentation
+                .messages;
+
+              $(".DTE_Field_Name_messages").html(renderMessages(messages));
+            }
+          });
+
+          assign_editor.on("initEdit", (e, node, data) => {
+            handle_initEdit(editor, assign_table_def, e, node, data);
+          });
         }
       })
       .then(() => {
         var datatable_buttons = [
           { extend: "pageLength" },
           { extend: "colvis" },
+          {
+            text: "Queued",
+            enabled: false,
+            action: function (e, dt, node, config) {
+              var selectedRows = datatable.rows({ selected: true });
+              this.disable(); // disable button
+
+              var row_ids = [];
+              var selected_data = selectedRows.data();
+              var send_data = {};
+
+              for (i = 0; i < selectedRows.count(); i++) {
+                var data = selected_data[i];
+                row_ids.push(data.id);
+                data.manual_segmentation.status = "Queued";
+                data.status = "queued"; // Update the state
+                send_data[data.id] = data;
+              }
+
+              // Send new data
+              $.post({
+                url:
+                  "/api/data_pool/project/" +
+                  project_id +
+                  "/case?ids=" +
+                  row_ids.join(","),
+                data: {
+                  data: send_data,
+                  action: "edit",
+                },
+                type: "PUT",
+              }).then(
+                (response) => {
+                  datatable.ajax.reload();
+                },
+                (error) => {
+                  console.log(error);
+                  alert(error);
+                }
+              );
+            },
+          },
         ];
 
         if (isDatatablesLoaded(false)) {
+          datatable_buttons.push({
+            text: "Assign",
+            extend: "editSingle",
+            editor: assign_editor,
+          });
           datatable_buttons.push({ extend: "edit", editor: editor });
           datatable_buttons.push({
             text: "Review",
@@ -550,8 +688,18 @@
         datatable.on("select deselect", function () {
           var selectedRows = datatable.rows({ selected: true });
 
-          // 3. button is "Review"-Button
-          var review_button = datatable.button(3);
+          // 3. button is "Queued"-Button
+          var queued_button = datatable.button(2);
+          // disable per default, enable, if the current row has status == 'assign' or 'created'
+          queued_button.disable();
+
+          // 3. button is "Assign"-Button
+          var assign_button = datatable.button(3);
+          // disable per default, enable, if the current row has status == 'queued' or 'created'
+          assign_button.disable();
+
+          // 5. button is "Review"-Button
+          var review_button = datatable.button(5);
 
           // disable per default, enable, if the current row has status == 'Submitted'
           review_button.disable();
@@ -563,6 +711,31 @@
               review_button.enable();
             }
           }
+
+          //Check for each item if the button can be enabled
+          var show_queued = true;
+          var show_assign = true;
+          for (i = 0; i < selectedRows.count(); i++) {
+            var data = selectedRows.data()[i];
+
+            if (
+              data.manual_segmentation.status !== "Assigned" &&
+              data.manual_segmentation.status !== "Created"
+            ) {
+              show_queued = false;
+            }
+
+            if (
+              data.manual_segmentation.status !== "Queued" &&
+              data.manual_segmentation.status !== "Created"
+            ) {
+              show_assign = false;
+            }
+          }
+
+          if (show_queued) queued_button.enable();
+
+          if (show_assign) assign_button.enable();
         });
 
         $("#datatable").on("draw.dt", function () {

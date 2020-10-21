@@ -108,74 +108,74 @@ function setup_data_table(table_def, table_id, toggle_columns_id) {
         case "assigned_user":
           promises.push(
             $.get("/api/data_pool/project/" + project_id + "/users")
-              .fail(defaultRESTFail)
-              .then((response) => {
-                entry.options = response.users.map((user) => ({
-                  label: user.email,
-                  value: user.id,
-                }));
-                console.log("Loaded " + entry.options.length + " users");
-              })
+            .fail(defaultRESTFail)
+            .then((response) => {
+              entry.options = response.users.map((user) => ({
+                label: user.email,
+                value: user.id,
+              }));
+              console.log("Loaded " + entry.options.length + " users");
+            })
           );
           break;
         case "modality":
           promises.push(
             $.get("/api/data_pool/project/" + project_id + "/modalities")
-              .fail(defaultRESTFail)
-              .then((response) => {
-                entry.options = response.modalities.map((modality) => ({
-                  label: modality.name,
-                  value: modality.id,
-                }));
-                console.log("Loaded " + entry.options.length + " modalities");
-              })
+            .fail(defaultRESTFail)
+            .then((response) => {
+              entry.options = response.modalities.map((modality) => ({
+                label: modality.name,
+                value: modality.id,
+              }));
+              console.log("Loaded " + entry.options.length + " modalities");
+            })
           );
           break;
         case "contrast_type":
           promises.push(
             $.get("/api/data_pool/project/" + project_id + "/contrast_types")
-              .fail(defaultRESTFail)
-              .then((response) => {
-                entry.options = response.contrast_types.map(
-                  (contrast_type) => ({
-                    label: contrast_type.name,
-                    value: contrast_type.id,
-                  })
-                );
-                console.log(
-                  "Loaded " + entry.options.length + " contrast types"
-                );
-              })
+            .fail(defaultRESTFail)
+            .then((response) => {
+              entry.options = response.contrast_types.map(
+                (contrast_type) => ({
+                  label: contrast_type.name,
+                  value: contrast_type.id,
+                })
+              );
+              console.log(
+                "Loaded " + entry.options.length + " contrast types"
+              );
+            })
           );
           break;
         case "split_type":
           promises.push(
             $.get("/api/data_pool/project/" + project_id + "/split_types")
-              .fail(defaultRESTFail)
-              .then((response) => {
-                entry.options = response.split_types.map((split) => ({
-                  label: split.name,
-                  value: split.id,
-                }));
-                console.log(
-                  "Loaded " + entry.options.length + " split types values"
-                );
-              })
+            .fail(defaultRESTFail)
+            .then((response) => {
+              entry.options = response.split_types.map((split) => ({
+                label: split.name,
+                value: split.id,
+              }));
+              console.log(
+                "Loaded " + entry.options.length + " split types values"
+              );
+            })
           );
           break;
         case "status":
           promises.push(
             $.get("/api/data_pool/statusEnum/all")
-              .fail(defaultRESTFail)
-              .then((response) => {
-                entry.options = response.status_enum.map((status) => ({
-                  label: status.value,
-                  value: status.name,
-                }));
-                console.log(
-                  "Loaded " + entry.options.length + " statusEnum values"
-                );
-              })
+            .fail(defaultRESTFail)
+            .then((response) => {
+              entry.options = response.status_enum.map((status) => ({
+                label: status.value,
+                value: status.name,
+              }));
+              console.log(
+                "Loaded " + entry.options.length + " statusEnum values"
+              );
+            })
           );
           break;
         default:

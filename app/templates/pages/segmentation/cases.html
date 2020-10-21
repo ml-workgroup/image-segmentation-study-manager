@@ -203,7 +203,8 @@
                 // allow for the reviewer only to select 'reject' or 'accept'
                 var filtered_options = status_field_config.options.filter(
                   (option) =>
-                    ["submitted", "queued"].indexOf(option.value) != -1
+                    ["assigned", "submitted", "queued"].indexOf(option.value) !=
+                    -1
                 );
 
                 var config_copy = Object.assign({}, status_field_config);
@@ -241,19 +242,6 @@
                 url:
                   "/api/data_pool/project/" + project_id + "/case/_id_/review",
                 data(request_data) {
-                  /* request_data is like:
-                            request_data: {
-                                data: {
-                                    7: {
-                                        field_a: ...,
-                                        field_b: ...,
-                                        messages: ...,
-                                        field_d: ...
-                                    }
-                                }
-                            }
-                            And we get the object with the key '7' via the following line
-                            */
                   data = request_data.data[Object.keys(request_data.data)[0]];
 
                   // messages shouldn't be in here, maybe it get's injected because we inject the messages in the hidden field
@@ -374,12 +362,12 @@
         datatable.on("select deselect", function () {
           var selectedRows = datatable.rows({ selected: true });
 
-          // 2. button is "Submit"-Button
+          // 2. button is "Assign"-Button
           var assign_button = datatable.button(2);
           // disable per default, enable, if the current row has status == 'queued'
           assign_button.disable();
 
-          // 3. button is "Review"-Button
+          // 3. button is "Submit"-Button
           var submit_button = datatable.button(3);
           // disable per default, enable, if the current row has status == 'Submitted'
           submit_button.disable();

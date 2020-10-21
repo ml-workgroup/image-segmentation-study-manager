@@ -354,9 +354,13 @@ def create_case_meta_data(project_id):
     # Find or create the image and segmentation object
     if 'upload_image' in case_meta_data and case_meta_data['upload_image']:
         image = data_pool_controller.find_image(id = case_meta_data['upload_image'])
-    else:
-        image = data_pool_controller.create_image(project = project)
-        manual_segmentation = data_pool_controller.create_manual_segmentation(project = project, image_id = image.id)
+    # else:
+    #     image = data_pool_controller.create_image(project = project)
+    #     manual_segmentation = data_pool_controller.create_manual_segmentation(project = project, image_id = image.id)
+
+    if image is None:
+        app.logger.info(f"Image provide? {request.json}")
+        return {'success': False}, 400
 
     ### Updatew image object ###
     data_pool_controller.update_image_from_map(image, case_meta_data)
@@ -392,12 +396,12 @@ def update_case_meta_data(project_id):
             'message': "The case id provided in the url .../case?ids=CASE_ID1,CASE_ID2... is/are not valid case id(s)"
         }, 400
 
+
+    update_case_meta_data = get_case_data_from_request(request)
     # update all specified cases
     for case_id in case_ids.split(','):
 
         app.logger.info(f"Project {project.short_name}: Updating case {case_id}")
-
-        update_case_meta_data = get_case_data_from_request(request)
 
         # Find the image and segmentation object
         image = data_pool_controller.find_image(id = case_id)
@@ -411,7 +415,6 @@ def update_case_meta_data(project_id):
         ### Update manual segmentation ###
         manual_segmentation = data_pool_controller.update_manual_segmentation_from_map(manual_segmentation_old, update_case_meta_data)
 
-        
         # Append messages
         if "new_message" in update_case_meta_data and len(update_case_meta_data["new_message"]) > 0:
             message = update_case_meta_data["new_message"]
@@ -508,6 +511,7 @@ def delete_case(project_id):
         data_pool_controller.delete_image(image)
 
     return {'success': True}, 200
+
 
 """
 Endpoint to upload a segmentation for a case (a nifti image)
@@ -809,7 +813,7 @@ def assign_or_submit_or_review(project_id, case_id):
 
     elif manual_segmentation.status == StatusEnum.assigned or manual_segmentation.status == StatusEnum.rejected:
         # Case is meant to be submitted or unclaimed
-
+        
         if new_status == StatusEnum.submitted.name:
 
             if message is not None:
@@ -825,6 +829,13 @@ def assign_or_submit_or_review(project_id, case_id):
                 message = data_pool_controller.create_message(user = user, message = message, manual_segmentation = image.manual_segmentation)
 
             data_pool_controller.unclaim_manual_segmentation(manual_segmentation = image.manual_segmentation, message = message)
+        elif new_status == StatusEnum.assigned.name:
+
+            if message is not None:
+                message = data_pool_controller.create_message(user = user, message = message, manual_segmentation = image.manual_segmentation)
+                image.manual_segmentation.messages.append(message)
+
+            data_pool_controller.update_manual_segmentation(image.manual_segmentation)
 
         else:
             return {
@@ -1179,7 +1190,7 @@ https://stackoverflow.com/questions/10434599/get-the-data-received-in-a-flask-re
 request.form.get('id')
 request.form.get('manual_segmentation') etc. etc.
 """
-def get_case_data_from_request(request):
+def get_case_data_from_request(request, id=None):
 
     # check, if the request is fired by a form or by ajax call
     is_form_request = hasattr(request, 'form')
@@ -1196,6 +1207,9 @@ def get_case_data_from_request(request):
 
         # Parsing of the HTML form data into case_meta_data
         field_name_start_with_regex = r'data\[\d+\]'
+        
+        if id is not None:
+            field_name_start_with_regex = r'data\['+id+r'\]'
 
         for field in request.form:
             matcher = re.search(field_name_start_with_regex, field)
