@@ -43,9 +43,12 @@ def webdav_user_info():
     password = request.form.get("password")
 
     if user_name and password:
+        # Find user by email
         user = user_controller.find_user(email=user_name)
 
+        # check user password by verifying passwordhash
         if user and current_app.user_manager.password_manager.verify_password(password,user.password):
+            # Get all user projects by role
             projects_admin = user.admin_for_project.all()
             projects_reviewer = user.reviewer_for_project.all()
             projects_user = user.user_for_project.all()
@@ -54,9 +57,9 @@ def webdav_user_info():
                 'success': True,
                 'data': {
                     'user': user.as_dict(),
-                    'projects_user': [record.as_dict() for record in projects_user], # list(map(lambda s: s.id , projects_user)),
-                    'projects_reviewer': [record.as_dict() for record in projects_reviewer], # list(map(lambda s: s.id , projects_reviewer)),
-                    'projects_admin': [record.as_dict() for record in projects_admin], # list(map(lambda s: s.id , projects_admin))
+                    'projects_user': [record.as_dict() for record in projects_user],
+                    'projects_reviewer': [record.as_dict() for record in projects_reviewer],
+                    'projects_admin': [record.as_dict() for record in projects_admin],
                 }
             }, 200
         else:

@@ -13,6 +13,7 @@ from wsgidav.request_resolver import RequestResolver
 from wsgidav.wsgidav_app import WsgiDAVApp
 from cheroot import wsgi
 from .ISSMDomainController import ISSMDomainController
+from .ISSMDAVProvider import ISSMDAVProvider
 
 # Use these settings, if config file does not define them (or is totally missing)
 DEFAULT_VERBOSE = 3
@@ -24,7 +25,7 @@ DEFAULT_CONFIG = {
     "port": 8008,
     "mount_path": None,  # Application root, e.g. <mount_path>/<share_name>/<res_path>
     "provider_mapping":  {
-        "/": "/data",
+        "/": ISSMDAVProvider()#"/data",
         },
     "add_header_MS_Author_Via": True,
     "hotfixes": {
