@@ -99,6 +99,9 @@
       orderable: false,
       searchable: false,
       render(data, type, row, meta) {
+        //Hide button if no manual segmentation is set
+        if (!row.manual_segmentation) return "";
+
         var link = document.createElement("a");
         link.href =
           "/api/data_pool/project/" +
@@ -145,6 +148,13 @@
       orderable: false,
       searchable: false,
       render(data, type, row, meta) {
+        //Hide button if no automatic segmentation is set
+        if (
+          !row.automatic_segmentation ||
+          row.automatic_segmentation.length < 1
+        )
+          return "";
+
         var link = document.createElement("a");
 
         var download_button = document.createElement("button");
@@ -353,9 +363,6 @@
               project_id +
               "/datatable?type=segmentation",
             type: "POST",
-            // contentType: "application/json; charset=utf-8",
-            // dataType: "json",
-            // data: (args) => JSON.stringify(args),
           },
 
           columns: table_def,

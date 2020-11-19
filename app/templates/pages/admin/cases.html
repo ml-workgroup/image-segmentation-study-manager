@@ -240,6 +240,13 @@
       visible: true,
       create: false,
       render(data, type, row, meta) {
+        //Hide button if no automatic segmentation is set
+        if (
+          !row.automatic_segmentation ||
+          row.automatic_segmentation.length < 1
+        )
+          return "";
+
         var link = document.createElement("a");
 
         var download_button = document.createElement("button");

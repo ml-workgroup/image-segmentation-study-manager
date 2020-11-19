@@ -1004,6 +1004,8 @@ def models_datatable(project_id):
             'message': "The project id provided in the url /project/PROJECT_ID/case/image is not a valid project id"
         }, 400
 
+    case_id = request.args.get('case')
+
     # See https://datatables.net/manual/server-side for all included parameters
     if request.is_json:
         datatable_parameters = request.get_json()
@@ -1016,7 +1018,7 @@ def models_datatable(project_id):
     app.logger.info(f"Requested {offset} - {offset + limit}")
 
     # Build query
-    query = db.session.query(AutomaticSegmentationModel)
+    query = db.session.query(AutomaticSegmentation).filter(AutomaticSegmentation.image_id == case_id).join(AutomaticSegmentationModel, isouter=True)
 
     # only Images to requested project_id
     filter_query = query.filter(AutomaticSegmentationModel.project_id == project_id)

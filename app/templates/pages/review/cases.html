@@ -208,9 +208,6 @@
         }
       },
       render(data, type, row, meta) {
-        if (!row.manual_segmentation) {
-          return "";
-        }
         //Hide button if no manual segmentation is set
         if (!row.manual_segmentation) return "";
 
@@ -246,8 +243,14 @@
       orderable: false,
       searchable: false,
       render(data, type, row, meta) {
-        var link = document.createElement("a");
+        //Hide button if no automatic segmentation is set
+        if (
+          !row.automatic_segmentation ||
+          row.automatic_segmentation.length < 1
+        )
+          return "";
 
+        var link = document.createElement("a");
         var download_button = document.createElement("button");
         download_button.className = "btn dataDownloadButton";
 

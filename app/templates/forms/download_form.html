@@ -19,11 +19,11 @@
     var model_table_def = [
       {
         title: "ID",
-        data: "id",
+        data: "model.id",
       },
       {
         title: "Name",
-        data: "name",
+        data: "model.name",
       },
       {
         title: "Model",
@@ -36,7 +36,7 @@
             "/case/" +
             rowObject.id +
             "/download?select=automatic_segmentaion&id=" +
-            data.id;
+            data.model.id;
 
           var download_button = document.createElement("button");
           download_button.className = "btn";
@@ -58,27 +58,37 @@
       },
     ];
 
-    $("#modelTable").DataTable({
-      serverSide: true,
-      dom: "Bfrtip",
-      select: true,
-      stateSave: true,
+    var datatable_url =
+      "/api/data_pool/project/" +
+      project_id +
+      "/models/datatable?case=" +
+      rowObject.id;
 
-      ajax: {
-        url: "/api/data_pool/project/" + project_id + "/models/datatable",
-        type: "POST",
-        contentType: "application/json; charset=utf-8",
-        dataType: "json",
-        data: (args) => JSON.stringify(args),
-      },
+    if ($.fn.DataTable.isDataTable("#modelTable")) {
+      $("#modelTable").DataTable().ajax.url(datatable_url).load();
+    } else {
+      $("#modelTable").DataTable({
+        serverSide: true,
+        dom: "Bfrtip",
+        select: true,
+        stateSave: true,
 
-      columns: model_table_def,
-      columnDefs: model_table_def,
+        ajax: {
+          url: datatable_url,
+          type: "POST",
+          contentType: "application/json; charset=utf-8",
+          dataType: "json",
+          data: (args) => JSON.stringify(args),
+        },
 
-      scrollX: true,
+        columns: model_table_def,
+        columnDefs: model_table_def,
 
-      buttons: [{ extend: "pageLength" }, { extend: "colvis" }],
-    });
+        scrollX: true,
+
+        buttons: [{ extend: "pageLength" }, { extend: "colvis" }],
+      });
+    }
   }
 </script>
 
@@ -102,7 +112,7 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-primary" id="downloadButton">
-          Download whole picture
+          Download whole case
         </button>
       </div>
     </div>

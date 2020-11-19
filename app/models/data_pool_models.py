@@ -181,7 +181,7 @@ class Image(DataPool):
                                           back_populates='image',
                                           cascade='all, delete-orphan',
                                           passive_deletes=True)
-    automatic_segmentation = db.relationship('AutomaticSegmentation', uselist=False,
+    automatic_segmentation = db.relationship('AutomaticSegmentation', uselist=True,
                                              foreign_keys='AutomaticSegmentation.image_id',
                                              back_populates='image',
                                              cascade='all, delete-orphan',
@@ -195,7 +195,7 @@ class Image(DataPool):
         if self.manual_segmentation is not None:
             result['manual_segmentation'] = self.manual_segmentation.as_dict()
         if self.automatic_segmentation is not None:
-            result['automatic_segmentation'] = self.automatic_segmentation.as_dict()
+            result['automatic_segmentation'] = [autoseg.as_dict() for autoseg in self.automatic_segmentation]
         result['project'] = self.project.long_name
         result['split_type'] = '' if self.split_type is None else self.split_type.name
         result['modality'] = '' if self.modality is None else self.modality.name
@@ -285,10 +285,13 @@ class AutomaticSegmentation(DataPool):
 
     # Relationships
     image = db.relationship('Image', foreign_keys=[image_id], uselist=False, back_populates='automatic_segmentation')
-
+    model = db.relationship('AutomaticSegmentationModel', foreign_keys=[model_id], uselist=False)
+    
     def as_dict(self):
         result = {c.name: getattr(self, c.name) for c in
                   DataPool.__table__.columns + AutomaticSegmentation.__table__.columns}
+
+        result['model'] = self.model.as_dict()
 
         # Fields from DataPool.__table__.columns
         result['insert_date'] = self.insert_date.strftime(DATETIME_FORMAT) if self.insert_date is not None else None
