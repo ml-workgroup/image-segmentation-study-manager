@@ -140,6 +140,8 @@
       title: "Image",
       name: "upload_image",
       data: "upload_image",
+      orderable: false,
+      searchable: false,
       create: true,
       ajax: {
         // endpoint used, to upload a new case file
@@ -185,6 +187,8 @@
       type: "upload",
       title: "Manual Segmentation",
       data: "upload_mask",
+      orderable: false,
+      searchable: false,
       create: false, // a mask can only be added to existing images to reduce complexity in code
       ajax: {
         // endpoint used, to upload a new or updated case mask file
@@ -239,6 +243,8 @@
     {
       title: "Models",
       data: null,
+      orderable: false,
+      searchable: false,
       render(data, type, row, meta) {
         var link = document.createElement("a");
 
@@ -602,6 +608,7 @@
       })
       .then(() => {
         var datatable_buttons = [
+          "searchPanes",
           { extend: "pageLength" },
           { extend: "colvis" },
           {
@@ -672,34 +679,76 @@
           ajax: {
             url: "/api/data_pool/project/" + project_id + "/datatable",
             type: "POST",
-            contentType: "application/json; charset=utf-8",
-            dataType: "json",
-            data: (args) => JSON.stringify(args),
           },
 
           columns: table_def,
-          columnDefs: table_def,
+          columnDefs: [
+            {
+              searchPanes: {
+                show: true,
+              },
+              targets: "_all",
+            },
+          ],
 
           scrollX: true,
 
           buttons: datatable_buttons,
+
+          //init header searchbar
+          initComplete: function () {
+            this.api()
+              .columns()
+              .every(function (index) {
+                var column = this;
+
+                if (
+                  "searchable" in table_def[index] &&
+                  !table_def[index].searchable
+                )
+                  return;
+
+                $parent_el = $("<div style='width:100%'></div>").appendTo(
+                  $(column.header())
+                );
+
+                $(
+                  '<input type="text" style="width: 100%;" value="' +
+                    column.search() +
+                    '" placeholder="Search ' +
+                    $(column.header()).text() +
+                    '" />'
+                )
+                  .appendTo($parent_el)
+                  .click(function (e) {
+                    e.stopPropagation();
+                  })
+                  .on("keyup change", function () {
+                    var val = $.fn.dataTable.util.escapeRegex($(this).val());
+                    console.log(val);
+                    if (column.search() !== val) {
+                      column.search(val ? val : "", false, false).draw();
+                    }
+                  });
+              });
+          },
         });
 
         datatable.on("select deselect", function () {
           var selectedRows = datatable.rows({ selected: true });
 
-          // 3. button is "Queued"-Button
-          var queued_button = datatable.button(2);
+          // 4. button is "Queued"-Button
+          var queued_button = datatable.button(3);
           // disable per default, enable, if the current row has status == 'assign' or 'created'
           queued_button.disable();
 
-          // 3. button is "Assign"-Button
-          var assign_button = datatable.button(3);
+          // 5. button is "Assign"-Button
+          var assign_button = datatable.button(4);
           // disable per default, enable, if the current row has status == 'queued' or 'created'
           assign_button.disable();
 
-          // 5. button is "Review"-Button
-          var review_button = datatable.button(5);
+          // 7. button is "Review"-Button
+          var review_button = datatable.button(6);
 
           // disable per default, enable, if the current row has status == 'Submitted'
           review_button.disable();

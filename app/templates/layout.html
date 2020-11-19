@@ -114,6 +114,14 @@
       href="{{ url_for('static', filename='datatable_editor/css/editor.bootstrap4.min.css') }}"
     />
 
+    <!-- DataTables Searchpanes -->
+    <!-- Add dataTables.searchPanes to static folder in order to use it -->
+    <script src="{{ url_for('static', filename='DataTables/Searchpanes-1.2.0/js/dataTables.searchPanes.min.js') }}"></script>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='DataTables/Searchpanes-1.2.0/css/searchPanes.dataTables.min.css') }}"
+    />
+
     <!-- Bootstrap 4 -->
     <!-- Popper needed for Bootstrap (if not using Bootstrap bundle) -->
     <script src="{{ url_for('static', filename='Popper_1.16.0/popper.min.js') }}"></script>
@@ -267,15 +275,11 @@
       <div class="row">
         {% if current_project.id is defined %}
         <div class="col-lg-12">
-          <h1 style="text-align: center;">
-            {{data.current_project.long_name}}
-          </h1>
+          <h1 style="text-align: center">{{data.current_project.long_name}}</h1>
         </div>
         {% endif %}
 
-        <div class="col-lg-12">
-          {% block content %}{% endblock %}
-        </div>
+        <div class="col-lg-12">{% block content %}{% endblock %}</div>
       </div>
     </section>
 

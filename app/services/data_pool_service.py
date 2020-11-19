@@ -15,7 +15,7 @@ import nibabel
 from flask import Blueprint, request, redirect, jsonify, flash
 from flask_user import login_required
 from flask_login import current_user
-from sqlalchemy import or_, asc, desc
+from sqlalchemy import or_, and_, asc, desc
 from sqlalchemy import DateTime, Date
 from nibabel import FileHolder, Nifti1Image
 from nibabel.dataobj_images import DataobjImage
@@ -24,8 +24,9 @@ from nibabel.filebasedimages import SerializableImage
 from app import app, db, current_project
 from app.models.config import DATE_FORMAT, DATETIME_FORMAT
 from app.models.data_pool_models import StatusEnum, SplitType, Image, ManualSegmentation, AutomaticSegmentationModel, AutomaticSegmentation, Message, Modality, ContrastType
+from app.models.user_models import User
 
-from app.utils import is_project_reviewer, is_project_user, technical_admin_required, project_admin_required, project_reviewer_required, project_user_required
+from app.utils import is_project_reviewer, is_project_user, technical_admin_required, project_admin_required, project_reviewer_required, project_user_required, db_results_to_searchpanes
 
 from app.controllers import data_pool_controller, project_controller, user_controller
 
@@ -125,10 +126,14 @@ def images_datatable(project_id):
 
     app.logger.info("images_datatable")
     # See https://datatables.net/manual/server-side for all included parameters
-    datatable_parameters = json.loads(request.data)
 
-    offset = datatable_parameters["start"]
-    limit = datatable_parameters["length"]
+    if request.is_json:
+        datatable_parameters = request.get_json()
+    else:
+        datatable_parameters = parse_multi_form(request.form)
+
+    offset = int(datatable_parameters["start"])
+    limit = int(datatable_parameters["length"])
 
     app.logger.info(f"Requested {offset} - {offset + limit}")
 
@@ -136,11 +141,11 @@ def images_datatable(project_id):
     query = db.session.query(Image)
 
     # only Images to requested project_id
-    filter_query = query.filter(Image.project_id == project_id)
+    query = query.filter(Image.project_id == project_id)
     # Database JOIN on Manual Segmentation
-    filter_query = filter_query.join(ManualSegmentation, Image.id == ManualSegmentation.image_id, isouter=True)
+    query = query.join(ManualSegmentation, Image.id == ManualSegmentation.image_id, isouter=True)
     # Database Outter JOIN Modality and ContrastType
-    filter_query = filter_query.join(Modality, isouter=True).join(ContrastType, isouter=True)
+    filter_query = query = query.join(Modality, isouter=True).join(ContrastType, isouter=True)
 
     # if the current user is only a user of the project, filter not-queued images and those, which are not assigned to him
     app.logger.info(f"User is at least reviewer in project: {is_project_reviewer(project)}")
@@ -149,40 +154,30 @@ def images_datatable(project_id):
         filter_query = filter_query.filter((ManualSegmentation.status == StatusEnum.queued) | (ManualSegmentation.assignee_id == current_user.id))
 
     r = request
-    #if role == "segmentation":
-    #    # Find assigned and open cases
-    #    filter_query = filter_query.filter(
-    #        or_(ManualSegmentation.assignee_id == current_user.id,
-    #            ManualSegmentation.status.in_(["open_for_segmentation", "submitted", "rejected"])))
-    #if role == "validation":
-    #    # Find submitted cases
-    #    filter_query = filter_query.filter(
-    #        ManualSegmentation.status == "submitted")
 
     # Add sorting
     order_by_directives = datatable_parameters["order"]
 
     # only take the first column we should order by
     first_order_by = order_by_directives[0]
-    first_order_by_column_id = first_order_by["column"]
+    first_order_by_column_id = int(first_order_by["column"])
     first_order_by_dir = first_order_by["dir"]
 
     columns = datatable_parameters["columns"]
-
+    
     first_oder_by_column = columns[first_order_by_column_id]
-    first_oder_by_column_name = first_oder_by_column["name"]
+    first_oder_by_column_name = first_oder_by_column["data"]
 
     app.logger.info(f"Order by {first_oder_by_column_name} {first_order_by_dir}")
 
     sorting_direction = asc if first_order_by_dir == "asc" else desc
 
-    # Ordering only enabled for columns "status", "name", "image_valid"
-    if first_oder_by_column_name == "status":
-        filter_query = filter_query.order_by(sorting_direction(ManualSegmentation.status))
-    elif first_oder_by_column_name == "name":
-        filter_query = filter_query.order_by(sorting_direction(Image.name))
-    elif first_oder_by_column_name == "image_valid":
-        filter_query = filter_query.order_by(sorting_direction(Image.is_valid))
+
+    fix_header_columns = { 'id': Image.id,'name': Image.name, 'name': Image.name, 'accession_number': Image.accession_number, 'manual_segmentation.status': ManualSegmentation.status, 'manual_segmentation.assigned_user': User.email, 'split_type': SplitType.name, 'body_region': Image.body_region, 'modality': Modality.name, 'contrast_type': ContrastType.name, 'series_name': Image.series_name, 'series_description': Image.series_description, 'series_number': Image.series_number, 'series_instance_uid': Image.series_instance_uid, 'patient_name':  Image.patient_name, 'patient_dob': Image.patient_dob, 'insert_date': Image.insert_date, 'last_updated': Image.last_updated, 'institution': Image.institution,
+        'custom_1': Image.custom_1, 'custom_2': Image.custom_2, 'custom_3': Image.custom_3}
+    #Ordering all Columns of fix_header_columns
+    if first_oder_by_column_name in fix_header_columns:
+        filter_query = filter_query.order_by(sorting_direction(fix_header_columns[first_oder_by_column_name]))
 
     # Searching
     searchable_columns = [Image.name, Image.patient_name, Modality.name, ContrastType.name, Image.accession_number]
@@ -192,13 +187,35 @@ def images_datatable(project_id):
         filters = [column.like(f"%{search_input}%") for column in searchable_columns]
         filter_query = filter_query.filter(or_(*filters))
 
+    # Searching each column if filter set (Column filter head)
+    for col_idx in columns:
+        col = columns[col_idx]
+        search_val = col['search']['value']
+        if bool(col['searchable']) and search_val is not None and len(search_val) > 0:
+            # Search in all searchable columns
+            if col['data'] in fix_header_columns:
+                db_col = fix_header_columns[col['data']]
+                filters = [db_col.like(f"%{search_val}%")]
+                filter_query = filter_query.filter(and_(*filters))
+    
+    # Searching each column with searchpanes filter (Column filter head)
+    if 'searchPanes' in datatable_parameters:
+        searchPanes_filter = datatable_parameters['searchPanes']
+        for col_idx, col_filter_list in searchPanes_filter.items():
+            # Search in all searchable columns
+            if col_idx in fix_header_columns:
+                db_col = fix_header_columns[col_idx]
+                filters = [db_col.like(f"{col_filter_val}") for col_filter_idx,col_filter_val  in col_filter_list.items()]
+                filter_query = filter_query.filter(or_(*filters))
+
+    
+    # Calculate the searchpanes
+    db_searchpanes = db_results_to_searchpanes(query.all(), filter_query.all(), fix_header_columns)
+
     # Limit records
     records = filter_query.slice(offset, offset + limit).all()
     records_total = query.count()
     records_filtered = filter_query.count()
-
-    if (len(records) > 0):
-        app.logger.info(records[0].as_dict())
 
     # Also attach the project and its users of the project
     project_users = [user.as_dict() for user in current_project.users]
@@ -228,6 +245,7 @@ def images_datatable(project_id):
         'recordsFiltered': records_filtered,
         'project_users': project_users,
         'data': data,
+        "searchPanes": db_searchpanes,
         # where is this options defined/documented?
         'options': {
             # 'contrast_type': contrast_types_dict,
@@ -987,10 +1005,13 @@ def models_datatable(project_id):
         }, 400
 
     # See https://datatables.net/manual/server-side for all included parameters
-    datatable_parameters = json.loads(request.data)
+    if request.is_json:
+        datatable_parameters = request.get_json()
+    else:
+        datatable_parameters = parse_multi_form(request.form)
 
-    offset = datatable_parameters["start"]
-    limit = datatable_parameters["length"]
+    offset = int(datatable_parameters["start"])
+    limit = int(datatable_parameters["length"])
 
     app.logger.info(f"Requested {offset} - {offset + limit}")
 
@@ -1007,7 +1028,7 @@ def models_datatable(project_id):
 
     # only take the first column we should order by
     first_order_by = order_by_directives[0]
-    first_order_by_column_id = first_order_by["column"]
+    first_order_by_column_id = int(first_order_by["column"])
     first_order_by_dir = first_order_by["dir"]
 
     columns = datatable_parameters["columns"]
@@ -1017,7 +1038,7 @@ def models_datatable(project_id):
 
     sorting_direction = asc if first_order_by_dir == "asc" else desc
 
-    # Ordering only enabled for columns "status", "name", "image_valid"
+    # Ordering only enabled for columns "status" and "name"
     if first_oder_by_column_name == "id":
         filter_query = filter_query.order_by(sorting_direction(AutomaticSegmentationModel.id))
     elif first_oder_by_column_name == "name":
@@ -1229,6 +1250,7 @@ def get_case_data_from_request(request, id=None):
 
     return case_meta_data
 
+
 """
 This function may receive a request from a datatables call and is able to retrieve all data and 
 pack it into a dictionary 'data'
@@ -1270,5 +1292,42 @@ def get_data_from_datatables_form(request):
 
     # uncomment to print data formatted
     # app.logger.info(json.dumps(data, indent=4))
+
+    return data
+
+"""
+This function receive the form data from a request and 
+pack it into a dictionary
+"""
+def parse_multi_form(form):
+    data = {}
+    for url_k in form:
+        v = form[url_k]
+        ks = []
+        while url_k:
+            if '[' in url_k:
+                k, r = url_k.split('[', 1)
+                ks.append(k)
+                if r[0] == ']':
+                    ks.append('')
+                url_k = r.replace(']', '', 1)
+            else:
+                ks.append(url_k)
+                break
+        sub_data = data
+        for i, k in enumerate(ks):
+            if k.isdigit():
+                k = int(k)
+            if i+1 < len(ks):
+                if not isinstance(sub_data, dict):
+                    break
+                if k in sub_data:
+                    sub_data = sub_data[k]
+                else:
+                    sub_data[k] = {}
+                    sub_data = sub_data[k]
+            else:
+                if isinstance(sub_data, dict):
+                    sub_data[k] = v
 
     return data

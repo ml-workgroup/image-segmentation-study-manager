@@ -110,3 +110,83 @@ def project_user_required(func):
         else:
             return abort(403)
     return decorated_view
+
+
+def flat_dict(input_dict):
+
+    new_dict = {}
+
+    for (key, val) in input_dict.items():
+        if type(val)==dict:
+            flat_dict_val = flat_dict(val)
+            
+            for (flat_key, val) in flat_dict_val.items():
+                #if key not in new_dict:
+                new_dict[key + '.' + flat_key] = val
+        else:
+            new_dict[key] = val
+
+    return new_dict
+
+def db_results_to_searchpanes(records, filtered_records, column_mapping):
+    record_meta = None
+    
+    # Getting Metadata
+    if len(records) > 0:
+        record_meta = records[0].__table__.columns
+
+    searchpanes = {
+            "options":{}
+        }
+
+    # first all records
+    for record in records:
+        record_dict = flat_dict(record.as_dict())
+
+        for col_name in column_mapping:
+            if col_name in record_dict:
+                col_value = record_dict[col_name]
+
+                # search for option
+                if col_name not in searchpanes['options']:
+                    searchpanes['options'][col_name] = []
+
+                # search in option for value
+                filtered_list = list(filter(lambda item: col_value == item['label'] , searchpanes['options'][col_name]))
+
+                if len(filtered_list) > 0:
+                    filtered_list[0]['total'] += 1
+                else:
+                    searchpanes['options'][col_name].append({
+                        "label":col_value,
+                        "total": 1,
+                        "value":col_value,
+                        "count": 0
+                    })
+
+    # secondly the filtered records
+    for record in filtered_records:
+        record_dict = flat_dict(record.as_dict())
+        for col_name in column_mapping:
+            if col_name in record_dict:
+                col_value = record_dict[col_name]
+
+                # search for option
+                if col_name not in searchpanes['options']:
+                    searchpanes['options'][col_name] = []
+
+                # search in option for value
+                filtered_list = list(filter(lambda item: col_value == item['label'] , searchpanes['options'][col_name]))
+
+                if len(filtered_list) > 0:
+                    filtered_list[0]['count'] += 1
+                else:
+                    searchpanes['options'][col_name].append({
+                        "label":col_value,
+                        "total": 1,
+                        "value":col_value,
+                        "count": 1
+                    })
+
+    return searchpanes
+
