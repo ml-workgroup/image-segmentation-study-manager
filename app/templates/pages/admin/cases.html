@@ -27,7 +27,7 @@
       type: "select",
       title: "Status",
       name: "status",
-      data: "manual_segmentation.status",
+      data: "status",
     },
     {
       type: "select",
@@ -341,10 +341,12 @@
               container.style = "display: block;";
 
               var selectedRows = datatable.rows({ selected: true });
-              var messages = selectedRows.data()[0].manual_segmentation
-                .messages;
+              if (selectedRows.data()[0].manual_segmentation) {
+                var messages = selectedRows.data()[0].manual_segmentation
+                  .messages;
 
-              $(".DTE_Field_Name_messages").html(renderMessages(messages));
+                $(".DTE_Field_Name_messages").html(renderMessages(messages));
+              }
 
               if (!is_project_admin) {
                 //Hide the Image upload field

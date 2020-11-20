@@ -151,7 +151,7 @@ def images_datatable(project_id):
     app.logger.info(f"User is at least reviewer in project: {is_project_reviewer(project)}")
      #The reviewer should be able to work as user
     if not is_project_reviewer(project) or 'type' in request.args and request.args.get('type') == "segmentation":
-        filter_query = filter_query.filter((ManualSegmentation.status == StatusEnum.queued) | (ManualSegmentation.assignee_id == current_user.id))
+        filter_query = filter_query.filter((Image.status == StatusEnum.queued) | (ManualSegmentation.assignee_id == current_user.id))
 
     r = request
 
@@ -173,7 +173,7 @@ def images_datatable(project_id):
     sorting_direction = asc if first_order_by_dir == "asc" else desc
 
 
-    fix_header_columns = { 'id': Image.id,'name': Image.name, 'name': Image.name, 'accession_number': Image.accession_number, 'manual_segmentation.status': ManualSegmentation.status, 'manual_segmentation.assigned_user': User.email, 'split_type': SplitType.name, 'body_region': Image.body_region, 'modality': Modality.name, 'contrast_type': ContrastType.name, 'series_name': Image.series_name, 'series_description': Image.series_description, 'series_number': Image.series_number, 'series_instance_uid': Image.series_instance_uid, 'patient_name':  Image.patient_name, 'patient_dob': Image.patient_dob, 'insert_date': Image.insert_date, 'last_updated': Image.last_updated, 'institution': Image.institution,
+    fix_header_columns = { 'id': Image.id,'name': Image.name, 'name': Image.name, 'accession_number': Image.accession_number, 'status': Image.status, 'manual_segmentation.assigned_user': User.email, 'split_type': SplitType.name, 'body_region': Image.body_region, 'modality': Modality.name, 'contrast_type': ContrastType.name, 'series_name': Image.series_name, 'series_description': Image.series_description, 'series_number': Image.series_number, 'series_instance_uid': Image.series_instance_uid, 'patient_name':  Image.patient_name, 'patient_dob': Image.patient_dob, 'insert_date': Image.insert_date, 'last_updated': Image.last_updated, 'institution': Image.institution,
         'custom_1': Image.custom_1, 'custom_2': Image.custom_2, 'custom_3': Image.custom_3}
     #Ordering all Columns of fix_header_columns
     if first_oder_by_column_name in fix_header_columns:
@@ -326,8 +326,8 @@ def upload_case(project_id):
 
     nibabel.save(image_nifti, image_path)
 
-    if not update_case:
-        manual_segmentation = data_pool_controller.create_manual_segmentation(project = project, image_id = image.id)
+    # if not update_case:
+    #     manual_segmentation = data_pool_controller.create_manual_segmentation(project = project, image_id = image.id)
 
     if image is not None:
         return {
@@ -423,13 +423,20 @@ def update_case_meta_data(project_id):
 
         # Find the image and segmentation object
         image = data_pool_controller.find_image(id = case_id)
-
+        old_status = image.status
+        
         ### Updatew image object ###
-        data_pool_controller.update_image_from_map(image, update_case_meta_data)
+        image = data_pool_controller.update_image_from_map(image, update_case_meta_data)
+
+        if image.manual_segmentation is None:
+            return {
+                'success': False,
+                'error': "No manual segmentation provided.", 
+                'message': "Before you change the status of case {case_id}, upload a manual segmentation."
+            }, 400
 
         manual_segmentation_old = data_pool_controller.find_manual_segmentation(id = image.manual_segmentation.id)
 
-        old_status = manual_segmentation_old.status
         ### Update manual segmentation ###
         manual_segmentation = data_pool_controller.update_manual_segmentation_from_map(manual_segmentation_old, update_case_meta_data)
 
@@ -441,7 +448,7 @@ def update_case_meta_data(project_id):
             manual_segmentation.messages.append(message)
 
         # Assigned User
-        if "assigned_user" in update_case_meta_data and manual_segmentation.status == StatusEnum.assigned:
+        if "assigned_user" in update_case_meta_data and image.status == StatusEnum.assigned:
             user_id = update_case_meta_data["assigned_user"]
 
             if user_id.isdigit() and not (manual_segmentation.assignee is not None and manual_segmentation.assignee.id == int(user_id)) :
@@ -449,21 +456,23 @@ def update_case_meta_data(project_id):
                 assigned_user = user_controller.find_user(user_id)
                 
                 # assign case to user
-                data_pool_controller.assign_manual_segmentation(manual_segmentation = manual_segmentation, assignee = assigned_user)
-        elif manual_segmentation.status == StatusEnum.created and old_status != StatusEnum.created:
+                data_pool_controller.assign_manual_segmentation(image = image, manual_segmentation = manual_segmentation, assignee = assigned_user)
+        elif image.status == StatusEnum.created and old_status != StatusEnum.created:
             sys_message = data_pool_controller.create_system_message(user = current_user, message = "Created.", manual_segmentation= manual_segmentation)
             manual_segmentation.messages.append(sys_message)
-        elif manual_segmentation.status == StatusEnum.queued and old_status != StatusEnum.queued:#if no user selected
-            data_pool_controller.unclaim_manual_segmentation(manual_segmentation = manual_segmentation)
-        elif manual_segmentation.status == StatusEnum.submitted and old_status != StatusEnum.submitted:
-            data_pool_controller.submit_manual_segmentation(manual_segmentation = manual_segmentation)
-        elif manual_segmentation.status == StatusEnum.rejected and old_status != StatusEnum.rejected:
-            data_pool_controller.reject_manual_segmentation(manual_segmentation = manual_segmentation)
-        elif manual_segmentation.status == StatusEnum.accepted and old_status != StatusEnum.accepted:
-            data_pool_controller.accept_manual_segmentation(manual_segmentation = manual_segmentation)
+        elif image.status == StatusEnum.queued and old_status != StatusEnum.queued:#if no user selected
+            data_pool_controller.unclaim_manual_segmentation(image = image, manual_segmentation = manual_segmentation)
+        elif image.status == StatusEnum.submitted and old_status != StatusEnum.submitted:
+            data_pool_controller.submit_manual_segmentation(image = image, manual_segmentation = manual_segmentation)
+        elif image.status == StatusEnum.rejected and old_status != StatusEnum.rejected:
+            data_pool_controller.reject_manual_segmentation(image = image, manual_segmentation = manual_segmentation)
+        elif image.status == StatusEnum.accepted and old_status != StatusEnum.accepted:
+            data_pool_controller.accept_manual_segmentation(image = image, manual_segmentation = manual_segmentation)
 
         ### Commit image object ###
         data_pool_controller.update_manual_segmentation(manual_segmentation)
+        ### Update image
+        data_pool_controller.update_image(image)
 
     return {
         'success': True,
@@ -823,13 +832,13 @@ def assign_or_submit_or_review(project_id, case_id):
                 'message': "You are not permitted to assign the case to another user"
             }, 400
 
-    if manual_segmentation.status == StatusEnum.queued:
+    if image.status == StatusEnum.queued:
         # Case is meant to be assigned
 
         # assign case to user
-        data_pool_controller.assign_manual_segmentation(manual_segmentation = manual_segmentation, assignee = user, message = message)
+        data_pool_controller.assign_manual_segmentation(image = image, manual_segmentation = manual_segmentation, assignee = user, message = message)
 
-    elif manual_segmentation.status == StatusEnum.assigned or manual_segmentation.status == StatusEnum.rejected:
+    elif image.status == StatusEnum.assigned or image.status == StatusEnum.rejected:
         # Case is meant to be submitted or unclaimed
         
         if new_status == StatusEnum.submitted.name:
@@ -838,7 +847,7 @@ def assign_or_submit_or_review(project_id, case_id):
                 message = data_pool_controller.create_message(user = user, message = message, manual_segmentation = image.manual_segmentation)
 
             # submit case to reviewer
-            data_pool_controller.submit_manual_segmentation(manual_segmentation = manual_segmentation, message = message)
+            data_pool_controller.submit_manual_segmentation(image = image, manual_segmentation = manual_segmentation, message = message)
             
 
         elif new_status == StatusEnum.queued.name:
@@ -846,7 +855,7 @@ def assign_or_submit_or_review(project_id, case_id):
             if message is not None:
                 message = data_pool_controller.create_message(user = user, message = message, manual_segmentation = image.manual_segmentation)
 
-            data_pool_controller.unclaim_manual_segmentation(manual_segmentation = image.manual_segmentation, message = message)
+            data_pool_controller.unclaim_manual_segmentation(image = image, manual_segmentation = image.manual_segmentation, message = message)
         elif new_status == StatusEnum.assigned.name:
 
             if message is not None:
@@ -861,8 +870,7 @@ def assign_or_submit_or_review(project_id, case_id):
                 'error': "No valid action provided", 
                 'message': "The manual segmentation is currently assigned, you can specify the actions 'submit' and 'unclaim' with /review?action='...'"
             }, 400
-
-    elif manual_segmentation.status == StatusEnum.submitted:
+    elif image.status == StatusEnum.submitted:
         # Case is meant to be rejected or accepted
 
         if new_status == StatusEnum.rejected.name:
@@ -870,7 +878,7 @@ def assign_or_submit_or_review(project_id, case_id):
                 message = data_pool_controller.create_message(user = user, message = message, manual_segmentation = image.manual_segmentation)
 
             # submit case to reviewer
-            data_pool_controller.reject_manual_segmentation(manual_segmentation = manual_segmentation, message = message)
+            data_pool_controller.reject_manual_segmentation(image = image, manual_segmentation = manual_segmentation, message = message)
             
 
         elif new_status == StatusEnum.accepted.name:
@@ -878,8 +886,10 @@ def assign_or_submit_or_review(project_id, case_id):
             if message is not None:
                 message = data_pool_controller.create_message(user = user, message = message, manual_segmentation = image.manual_segmentation)
 
-            data_pool_controller.accept_manual_segmentation(manual_segmentation = image.manual_segmentation, message = message)
-
+            data_pool_controller.accept_manual_segmentation(image = image, manual_segmentation = image.manual_segmentation, message = message)
+    
+    ### Update image
+    data_pool_controller.update_image(image)
     return {
         'success': True,
         'data': manual_segmentation.as_dict()

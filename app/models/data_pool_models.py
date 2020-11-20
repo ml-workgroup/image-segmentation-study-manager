@@ -23,7 +23,6 @@ class StatusEnum(enum.Enum):
             value=self.value
         )
 
-
 class SplitEnum(enum.Enum):
     train = 'Train'
     validation = 'Validation'
@@ -149,6 +148,7 @@ class Image(DataPool):
     __tablename__ = 'data_pool_images'
     id = db.Column(db.Integer, db.ForeignKey('data_pool.id'), primary_key=True)
     name = db.Column(db.Unicode(255), nullable=False, server_default='')
+    status = db.Column(Enum(StatusEnum), nullable=False, default='created')
 
     institution = db.Column(db.Unicode(255), nullable=True, server_default='')
     accession_number = db.Column(db.Unicode(255), nullable=True, server_default='')
@@ -196,6 +196,9 @@ class Image(DataPool):
             result['manual_segmentation'] = self.manual_segmentation.as_dict()
         if self.automatic_segmentation is not None:
             result['automatic_segmentation'] = [autoseg.as_dict() for autoseg in self.automatic_segmentation]
+        
+        if self.status is not None:
+            result['status'] = self.status.value
         result['project'] = self.project.long_name
         result['split_type'] = '' if self.split_type is None else self.split_type.name
         result['modality'] = '' if self.modality is None else self.modality.name
@@ -221,7 +224,6 @@ class ManualSegmentation(DataPool):
     image_id = db.Column(db.Integer, db.ForeignKey('data_pool_images.id', ondelete='CASCADE'),
                          nullable=False, unique=True)
 
-    status = db.Column(Enum(StatusEnum), nullable=False, default='created')
     assignee_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     assigned_date = db.Column(db.DateTime, nullable=True)
     validated_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
@@ -244,8 +246,6 @@ class ManualSegmentation(DataPool):
             result['assignee'] = self.assignee.as_dict()
         if self.validated_by is not None:
             result['validated_by'] = self.validated_by.as_dict()
-        if self.status is not None:
-            result['status'] = self.status.value
         result['messages'] = [m.as_dict() for m in self.messages]
 
         result['assigned_date'] = self.assigned_date.strftime(DATETIME_FORMAT) if self.assigned_date is not None else None

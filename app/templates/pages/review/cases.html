@@ -26,7 +26,7 @@
       type: "select",
       title: "Status",
       name: "status",
-      data: "manual_segmentation.status",
+      data: "status",
     },
     {
       type: "select",
@@ -355,10 +355,12 @@
               container.style = "display: block;";
 
               var selectedRows = datatable.rows({ selected: true });
-              var messages = selectedRows.data()[0].manual_segmentation
-                .messages;
+              if (selectedRows.data()[0].manual_segmentation) {
+                var messages = selectedRows.data()[0].manual_segmentation
+                  .messages;
 
-              $(".DTE_Field_Name_messages").html(renderMessages(messages));
+                $(".DTE_Field_Name_messages").html(renderMessages(messages));
+              }
 
               if (!is_project_admin) {
                 //Hide the Image upload field
@@ -504,6 +506,9 @@
               container.style = "display: block;";
 
               var selectedRows = datatable.rows({ selected: true });
+
+              if (!selectedRows.data()[0].manual_segmentation) return;
+
               var messages = selectedRows.data()[0].manual_segmentation
                 .messages;
 
@@ -597,6 +602,9 @@
               container.style = "display: block;";
 
               var selectedRows = datatable.rows({ selected: true });
+
+              if (!selectedRows.data()[0].manual_segmentation) return;
+
               var messages = selectedRows.data()[0].manual_segmentation
                 .messages;
 
@@ -628,8 +636,7 @@
               for (i = 0; i < selectedRows.count(); i++) {
                 var data = selected_data[i];
                 row_ids.push(data.id);
-                data.manual_segmentation.status = "Queued";
-                data.status = "queued"; // Update the state
+                data.status = "Queued";
                 send_data[data.id] = data;
               }
 
@@ -645,15 +652,15 @@
                   action: "edit",
                 },
                 type: "PUT",
-              }).then(
-                (response) => {
-                  datatable.ajax.reload();
-                },
-                (error) => {
-                  console.log(error);
-                  alert(error);
-                }
-              );
+              })
+                .fail(defaultRESTFail)
+                .then(
+                  (response) => {
+                    datatable.ajax.reload();
+                  },
+                  (error, status, errorThrown) =>
+                    defaultUserFail(error, status, errorThrown)
+                );
             },
           },
         ];
@@ -759,7 +766,7 @@
           // Multiselect is not supported per default
           if (selectedRows.count() == 1) {
             var data = selectedRows.data()[0];
-            if (data.manual_segmentation.status == "Submitted") {
+            if (data.status == "Submitted") {
               review_button.enable();
             }
           }
@@ -770,17 +777,11 @@
           for (i = 0; i < selectedRows.count(); i++) {
             var data = selectedRows.data()[i];
 
-            if (
-              data.manual_segmentation.status !== "Assigned" &&
-              data.manual_segmentation.status !== "Created"
-            ) {
+            if (data.status !== "Assigned" && data.status !== "Created") {
               show_queued = false;
             }
 
-            if (
-              data.manual_segmentation.status !== "Queued" &&
-              data.manual_segmentation.status !== "Created"
-            ) {
+            if (data.status !== "Queued" && data.status !== "Created") {
               show_assign = false;
             }
           }

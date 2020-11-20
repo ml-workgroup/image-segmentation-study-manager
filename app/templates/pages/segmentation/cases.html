@@ -20,7 +20,7 @@
       type: "select",
       title: "Status",
       name: "status",
-      data: "manual_segmentation.status",
+      data: "status",
     },
     {
       type: "select",
@@ -47,6 +47,7 @@
       title: "Last Message",
       data: null,
       render(data) {
+        if (!data.manual_segmentation) return "";
         var messages = data.manual_segmentation.messages;
         if (messages != null && messages.length > 0) {
           messages = messages.filter(
@@ -284,6 +285,9 @@
               container.style = "display: block;";
 
               var selectedRows = datatable.rows({ selected: true });
+
+              if (!selectedRows.data()[0].manual_segmentation) return;
+
               var messages = selectedRows.data()[0].manual_segmentation
                 .messages;
 
@@ -323,18 +327,18 @@
                     data.id +
                     "/review",
                   type: "POST",
-                }).then(
-                  (response) => {
-                    console.log(response);
+                })
+                  .fail(defaultRESTFail)
+                  .then(
+                    (response) => {
+                      console.log(response);
 
-                    Object.assign(response.data, data);
-                    datatable.row(selectedRows[0]).data(data).draw();
-                  },
-                  (error) => {
-                    console.log(error);
-                    alert(error);
-                  }
-                );
+                      Object.assign(response.data, data);
+                      datatable.row(selectedRows[0]).data(data).draw();
+                    },
+                    (error, status, errorThrown) =>
+                      defaultUserFail(error, status, errorThrown)
+                  );
               } else {
                 alert("You can only assign one at a time");
               }
@@ -435,11 +439,11 @@
           if (selectedRows.count() == 1) {
             var data = selectedRows.data()[0];
 
-            if (data.manual_segmentation.status == "Queued") {
+            if (data.status == "Queued") {
               assign_button.enable();
-            } else if (data.manual_segmentation.status == "Assigned") {
+            } else if (data.status == "Assigned") {
               submit_button.enable();
-            } else if (data.manual_segmentation.status == "Rejected") {
+            } else if (data.status == "Rejected") {
               submit_button.enable();
             }
           }
