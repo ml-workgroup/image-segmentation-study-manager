@@ -33,14 +33,10 @@
       type: "select",
       title: "Assigned User",
       name: "assigned_user",
-      data: "manual_segmentation.assignee.email",
+      data: "assignee.email",
       render: function (data, type, full, meta) {
-        if (
-          full.manual_segmentation &&
-          full.manual_segmentation.assignee &&
-          full.manual_segmentation.assignee.email
-        ) {
-          return full.manual_segmentation.assignee.email;
+        if (full.assignee && full.assignee.email) {
+          return full.assignee.email;
         } else return "";
       },
       create: false,
@@ -341,9 +337,8 @@
               container.style = "display: block;";
 
               var selectedRows = datatable.rows({ selected: true });
-              if (selectedRows.data()[0].manual_segmentation) {
-                var messages = selectedRows.data()[0].manual_segmentation
-                  .messages;
+              if (selectedRows.data()[0]) {
+                var messages = selectedRows.data()[0].messages;
 
                 $(".DTE_Field_Name_messages").html(renderMessages(messages));
               }

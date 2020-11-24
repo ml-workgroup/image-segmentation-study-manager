@@ -53,13 +53,13 @@ class SplitType(db.Model):
 class Message(db.Model):
     __tablename__ = 'message'
     id = db.Column(db.Integer, primary_key=True)
-    manual_segmentation_id = db.Column(db.Integer, db.ForeignKey('data_pool_manual_segmentations.id'), nullable=False)
+    image_id = db.Column(db.Integer, db.ForeignKey('data_pool_images.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     date = db.Column(db.DateTime, nullable=False)
     message = db.Column(db.String(500))
 
     user = db.relationship('user_models.User', foreign_keys=user_id)
-    manual_segmentation = db.relationship('ManualSegmentation', foreign_keys=manual_segmentation_id, uselist=False)
+    image = db.relationship('Image', foreign_keys=image_id, uselist=False)
 
     def as_dict(self):
         return dict(
@@ -150,6 +150,9 @@ class Image(DataPool):
     name = db.Column(db.Unicode(255), nullable=False, server_default='')
     status = db.Column(Enum(StatusEnum), nullable=False, default='created')
 
+    assignee_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    assigned_date = db.Column(db.DateTime, nullable=True)
+
     institution = db.Column(db.Unicode(255), nullable=True, server_default='')
     accession_number = db.Column(db.Unicode(255), nullable=True, server_default='')
     study_date = db.Column(db.DateTime, nullable=True, default=datetime.now)
@@ -189,6 +192,9 @@ class Image(DataPool):
     split_type = db.relationship('SplitType', foreign_keys=[split_type_id], uselist=False)
     contrast_type = db.relationship('ContrastType', foreign_keys=[contrast_type_id], uselist=False)
     modality = db.relationship('Modality', foreign_keys=[modality_id], uselist=False)
+    assignee = db.relationship('user_models.User', foreign_keys=[assignee_id],
+                               back_populates='segmentations_assigned')
+    messages = db.relationship('Message', foreign_keys=[Message.image_id])
 
     def as_dict(self):
         result = {c.name: getattr(self, c.name) for c in DataPool.__table__.columns + Image.__table__.columns}
@@ -199,6 +205,12 @@ class Image(DataPool):
         
         if self.status is not None:
             result['status'] = self.status.value
+            
+        if self.assignee is not None:
+            result['assignee'] = self.assignee.as_dict()
+        result['messages'] = [m.as_dict() for m in self.messages]
+
+        result['assigned_date'] = self.assigned_date.strftime(DATETIME_FORMAT) if self.assigned_date is not None else None
         result['project'] = self.project.long_name
         result['split_type'] = '' if self.split_type is None else self.split_type.name
         result['modality'] = '' if self.modality is None else self.modality.name
@@ -224,31 +236,22 @@ class ManualSegmentation(DataPool):
     image_id = db.Column(db.Integer, db.ForeignKey('data_pool_images.id', ondelete='CASCADE'),
                          nullable=False, unique=True)
 
-    assignee_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    assigned_date = db.Column(db.DateTime, nullable=True)
     validated_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     validation_date = db.Column(db.DateTime, nullable=True)
 
     # Relationships
     image = db.relationship('Image', foreign_keys=[image_id],
                             uselist=False, back_populates='manual_segmentation')
-    assignee = db.relationship('user_models.User', foreign_keys=[assignee_id],
-                               back_populates='segmentations_assigned')
     validated_by = db.relationship('user_models.User', foreign_keys=[validated_by_id],
                                    back_populates='segmentations_validated')
-    messages = db.relationship('Message', foreign_keys=[Message.manual_segmentation_id])
 
     def as_dict(self):
         result = {c.name: getattr(self, c.name) for c in
                   DataPool.__table__.columns + ManualSegmentation.__table__.columns}
 
-        if self.assignee is not None:
-            result['assignee'] = self.assignee.as_dict()
         if self.validated_by is not None:
             result['validated_by'] = self.validated_by.as_dict()
-        result['messages'] = [m.as_dict() for m in self.messages]
-
-        result['assigned_date'] = self.assigned_date.strftime(DATETIME_FORMAT) if self.assigned_date is not None else None
+        
         result['validation_date'] = self.validation_date.strftime(DATETIME_FORMAT) if self.validation_date is not None else None
 
         # Fields from DataPool.__table__.columns

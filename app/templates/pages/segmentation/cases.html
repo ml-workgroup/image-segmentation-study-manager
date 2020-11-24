@@ -47,8 +47,8 @@
       title: "Last Message",
       data: null,
       render(data) {
-        if (!data.manual_segmentation) return "";
-        var messages = data.manual_segmentation.messages;
+        if (!data.messages) return "";
+        var messages = data.messages;
         if (messages != null && messages.length > 0) {
           messages = messages.filter(
             (message) => !message.message.startsWith("**sys**")
@@ -239,7 +239,7 @@
               type: "hidden",
               name: "messages",
             },
-            // new message to append to the messages of the manual_segmentation.messages
+            // new message to append to the messages of the image.messages
             {
               title: "New Message",
               label: "New Message",
@@ -286,14 +286,13 @@
 
               var selectedRows = datatable.rows({ selected: true });
 
-              if (!selectedRows.data()[0].manual_segmentation) return;
+              if (!selectedRows.data()[0]) return;
 
-              var messages = selectedRows.data()[0].manual_segmentation
-                .messages;
+              var messages = selectedRows.data()[0].messages;
 
               console.log("Messages", messages);
 
-              // inject the messages of the manual_segmentation into hidden field
+              // inject the messages of the image into hidden field
               container.innerHTML = renderMessages(messages);
             }
           });

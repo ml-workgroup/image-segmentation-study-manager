@@ -43,12 +43,12 @@ def case_data(project_id):
     #if role == "segmentation":
     #    # Find assigned and open cases
     #    filter_query = filter_query.filter(
-    #        or_(ManualSegmentation.assignee_id == current_user.id,
-    #            ManualSegmentation.status.in_(["open_for_segmentation", "submitted", "rejected"])))
+    #        or_(Image.assignee_id == current_user.id,
+    #            Image.status.in_(["open_for_segmentation", "submitted", "rejected"])))
     #if role == "validation":
     #    # Find submitted cases
     #    filter_query = filter_query.filter(
-    #        ManualSegmentation.status == "submitted")
+    #        Image.status == "submitted")
 
     # Add sorting
     sorting_column_id = datatable_parameters["order"][0]["column"]
@@ -165,8 +165,8 @@ def update_case_meta_data(project_id):
     if "new_message" in segmentation_object:
         message = segmentation_object["new_message"]
         message = Message(user=current_user, date=datetime.now(), message=message,
-                          manual_segmentation=manual_segmentation, manual_segmentation_id=manual_segmentation.id)
-        manual_segmentation.messages.append(message)
+                          image=image, image_id=image.id)
+        image.messages.append(message)
 
     db.session.commit()
 
@@ -180,11 +180,11 @@ def message(project_id, case_id):
     Handle new messages appended to segmentations
     """
     r = request
-    manual_segmentation = db.session.query(ManualSegmentation).filter(ManualSegmentation.image_id == case_id).first()
+    image = db.session.query(Image).filter(Image.id == case_id).first()
     message = request.values["messageText"]
     message = Message(user=current_user, date=datetime.now(), message=message,
-                      manual_segmentation=manual_segmentation, manual_segmentation_id=manual_segmentation.id)
-    manual_segmentation.messages.append(message)
+                      image=image, image_id=image.id)
+    image.messages.append(message)
     db.session.commit()
 
     message = jsonify(message.as_dict())

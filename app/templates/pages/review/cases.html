@@ -32,14 +32,10 @@
       type: "select",
       title: "Assigned User",
       name: "assigned_user",
-      data: "manual_segmentation.assignee.email",
+      data: "assignee.email",
       render: function (data, type, full, meta) {
-        if (
-          full.manual_segmentation &&
-          full.manual_segmentation.assignee &&
-          full.manual_segmentation.assignee.email
-        ) {
-          return full.manual_segmentation.assignee.email;
+        if (full.assignee && full.assignee.email) {
+          return full.assignee.email;
         } else return "";
       },
       create: false,
@@ -295,7 +291,7 @@
                 type: "hidden",
                 name: "messages",
               },
-              // new message to append to the messages of the manual_segmentation.messages
+              // new message to append to the messages of the image.messages
               {
                 title: "New Message",
                 label: "New Message",
@@ -355,9 +351,8 @@
               container.style = "display: block;";
 
               var selectedRows = datatable.rows({ selected: true });
-              if (selectedRows.data()[0].manual_segmentation) {
-                var messages = selectedRows.data()[0].manual_segmentation
-                  .messages;
+              if (selectedRows.data()[0]) {
+                var messages = selectedRows.data()[0].messages;
 
                 $(".DTE_Field_Name_messages").html(renderMessages(messages));
               }
@@ -471,7 +466,7 @@
                 type: "hidden",
                 name: "messages",
               },
-              // new message to append to the messages of the manual_segmentation.messages
+              // new message to append to the messages of the image.messages
               {
                 title: "New Message",
                 label: "New Message",
@@ -507,12 +502,11 @@
 
               var selectedRows = datatable.rows({ selected: true });
 
-              if (!selectedRows.data()[0].manual_segmentation) return;
+              if (!selectedRows.data()[0]) return;
 
-              var messages = selectedRows.data()[0].manual_segmentation
-                .messages;
+              var messages = selectedRows.data()[0].messages;
 
-              // inject the messages of the manual_segmentation into hidden field
+              // inject the messages of the image into hidden field
               container.innerHTML = renderMessages(messages);
             }
           });
@@ -556,7 +550,7 @@
                 type: "hidden",
                 name: "messages",
               },
-              // new message to append to the messages of the manual_segmentation.messages
+              // new message to append to the messages of the image.messages
               {
                 title: "New Message",
                 label: "New Message",
@@ -603,10 +597,9 @@
 
               var selectedRows = datatable.rows({ selected: true });
 
-              if (!selectedRows.data()[0].manual_segmentation) return;
+              if (!selectedRows.data()[0]) return;
 
-              var messages = selectedRows.data()[0].manual_segmentation
-                .messages;
+              var messages = selectedRows.data()[0].messages;
 
               $(".DTE_Field_Name_messages").html(renderMessages(messages));
             }

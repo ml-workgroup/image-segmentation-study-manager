@@ -32,8 +32,8 @@ class User(db.Model, UserMixin):
     # Relationships
     roles                   = db.relationship('Role', secondary='users_roles',
                                               backref=db.backref('users', lazy='dynamic'))
-    segmentations_assigned  = db.relationship('data_pool_models.ManualSegmentation',
-                                              foreign_keys='data_pool_models.ManualSegmentation.assignee_id',
+    segmentations_assigned  = db.relationship('data_pool_models.Image',
+                                              foreign_keys='data_pool_models.Image.assignee_id',
                                               back_populates='assignee')
     segmentations_validated = db.relationship('data_pool_models.ManualSegmentation',
                                               foreign_keys='data_pool_models.ManualSegmentation.validated_by_id',
