@@ -1,6 +1,7 @@
 import requests
 import os 
 from datetime import *
+from .ISSMUtils import *
 from wsgidav.dc.base_dc import BaseDomainController
 
 class ISSMDomainController(BaseDomainController):
@@ -34,7 +35,7 @@ class ISSMDomainController(BaseDomainController):
             for item in cached_user_list:
                 self.user_list.remove(item)
 
-            r = requests.post('http://localhost:5000/api/webdav/user/info', data={"user_name": user_name, "password": password})
+            r = requests.post(ISSM_API_URL + '/user/info', data={"user_name": user_name, "password": password})
             cached_user = r.json()
             if  cached_user is not None and cached_user['success']:
                 cached_user['data']['user']['password'] = password
@@ -57,6 +58,13 @@ class ISSMDomainController(BaseDomainController):
         # if the user is vaild continue
         if user_data is None or not user_data['success']:
             return False
+        
+        for project in user_data['data']['projects_admin']:
+            project['role'] = 'administration'
+        for project in user_data['data']['projects_reviewer']:
+            project['role'] = 'review'
+        for project in user_data['data']['projects_user']:
+            project['role'] = 'segmentation'
 
         # Save the user item and all user projects to environ
         environ["wsgidav.auth.user"] = user_data['data']['user']
@@ -64,7 +72,7 @@ class ISSMDomainController(BaseDomainController):
 
         if environ is None:
             return True  
-        
+
         # Split the requested path into parts. For checking access
         path = ["/" + part for part in environ.get("PATH_INFO").split("/")]
         

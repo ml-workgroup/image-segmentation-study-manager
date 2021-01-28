@@ -427,7 +427,7 @@ def assign_manual_segmentation(image = None, assignee = None, message = None):
 
     return update_image(image)
 
-def unclaim_manual_segmentation(image = None, message = None):
+def unclaim_manual_segmentation(image = None, message = None, target_user = current_user):
 
     if image is None:
         app.logger.error("No image provided")
@@ -435,7 +435,7 @@ def unclaim_manual_segmentation(image = None, message = None):
 
     # Append system message
     status = "Queued."
-    message_user = current_user
+    message_user = target_user
     if image.assignee is not None:
         status = 'Unclaimed.'
         message_user = image.assignee
@@ -453,7 +453,7 @@ def unclaim_manual_segmentation(image = None, message = None):
 
     return update_image(image)
 
-def submit_manual_segmentation(image = None, manual_segmentation = None, message = None):
+def submit_manual_segmentation(image = None, manual_segmentation = None, message = None, target_user = current_user):
     
     if image is None:
         app.logger.error("No image provided")
@@ -463,7 +463,7 @@ def submit_manual_segmentation(image = None, manual_segmentation = None, message
         return None
 
     # Append system message
-    sys_message = create_system_message(user = current_user, message = "Submit.", image= image)
+    sys_message = create_system_message(user = target_user, message = "Submit.", image= image)
     image.messages.append(sys_message)
 
     image.status = StatusEnum.submitted
@@ -475,7 +475,7 @@ def submit_manual_segmentation(image = None, manual_segmentation = None, message
     return update_manual_segmentation(manual_segmentation)
 
 
-def reject_manual_segmentation(image = None, manual_segmentation = None, message = None):
+def reject_manual_segmentation(image = None, manual_segmentation = None, message = None, target_user = current_user):
     
     if image is None:
         app.logger.error("No image provided")
@@ -485,7 +485,7 @@ def reject_manual_segmentation(image = None, manual_segmentation = None, message
         return None
     
     # Append system message
-    sys_message = create_system_message(user = current_user, message = "Rejected.", image= image)
+    sys_message = create_system_message(user = target_user, message = "Rejected.", image= image)
     image.messages.append(sys_message)
 
     image.status = StatusEnum.rejected
@@ -496,7 +496,7 @@ def reject_manual_segmentation(image = None, manual_segmentation = None, message
 
     return update_manual_segmentation(manual_segmentation)
 
-def accept_manual_segmentation(image = None, manual_segmentation = None, message = None):
+def accept_manual_segmentation(image = None, manual_segmentation = None, message = None, target_user = current_user):
     
     if image is None:
         app.logger.error("No image provided")
@@ -506,7 +506,7 @@ def accept_manual_segmentation(image = None, manual_segmentation = None, message
         return None
         
     # Append system message
-    sys_message = create_system_message(user = current_user, message = "Accepted.", image= image)
+    sys_message = create_system_message(user = target_user, message = "Accepted.", image= image)
     image.messages.append(sys_message)
 
     image.status = StatusEnum.accepted

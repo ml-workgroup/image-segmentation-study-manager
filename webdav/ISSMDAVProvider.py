@@ -4,9 +4,21 @@ from pprint import pformat
 from wsgidav import compat, util
 from wsgidav.dav_provider import DAVCollection, DAVNonCollection, DAVProvider
 from wsgidav.util import join_uri
+from .ISSMDAVFileHandler import ISSMDAVFileHandler
 from .ISSMDAVCollection import ISSMRootCollection
 
+import tempfile
+import os
+
 class ISSMDAVProvider(DAVProvider):
+    def __init__(self):
+        super(ISSMDAVProvider, self).__init__()
+
+        # Init ISSMRootCollection
+        self.root = None
+        print(f"ISSMDAVProvider init!")
+        self.tempfile_handler = ISSMDAVFileHandler()
+
     def is_readonly(self):
         return False
 
@@ -78,5 +90,11 @@ class ISSMDAVProvider(DAVProvider):
         See _DAVResource for details.
         This method MUST be implemented.
         """
-        root = ISSMRootCollection("/",environ, environ["wsgidav.auth.projects"])
-        return root.resolve("/", path)
+        #print(f"Path: {path}")
+        environ['wsgidav.filehandler'] = self.tempfile_handler
+        
+        
+        if not self.root:
+            self.root =  ISSMRootCollection("/", environ, environ["wsgidav.auth.projects"])
+
+        return self.root.resolve("/", path)

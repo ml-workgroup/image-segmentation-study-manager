@@ -25,7 +25,7 @@ DEFAULT_CONFIG = {
     "port": 8008,
     "mount_path": None,  # Application root, e.g. <mount_path>/<share_name>/<res_path>
     "provider_mapping":  {
-        "/": ISSMDAVProvider()#"/data",
+        "/": ISSMDAVProvider(),
         },
     "add_header_MS_Author_Via": True,
     "hotfixes": {

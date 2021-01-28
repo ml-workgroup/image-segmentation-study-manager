@@ -5,6 +5,7 @@ from wsgidav import compat, util
 from os.path import isfile, join
 from wsgidav.dav_error import DAVError, HTTP_FORBIDDEN
 from wsgidav.dav_provider import DAVNonCollection
+from .ISSMUtils import *
 
 BUFFER_SIZE = 8192
 
@@ -13,30 +14,53 @@ class ISSMDAVNonCollection(DAVNonCollection):
     See also _DAVResource, DAVNonCollection, and FilesystemProvider.
     """
 
-    def __init__(self, path, environ, file_path, display_name):
+    def __init__(self, path, environ, file_path, display_name, project, case):
         super(ISSMDAVNonCollection, self).__init__(path, environ)
+        print(f"ISSMDAVNonCollection {file_path}")
         self._file_path = file_path
-        self.file_stat = os.stat(self._file_path)
+        self.project = project
+        self.case = case
+
+        if os.path.isfile(self._file_path):
+            self.file_stat = os.stat(self._file_path)
+        else:
+            self.file_stat = None
         self.name = display_name
 
     # Getter methods for standard live properties
     def get_content_length(self):
-        return self.file_stat[stat.ST_SIZE]
+        if self.file_stat:
+            return self.file_stat[stat.ST_SIZE]
+        else:
+            return None
 
     def get_content_type(self):
-        return util.guess_mime_type(self.path)
+        if os.path.isfile(self._file_path):
+            return util.guess_mime_type(self._file_path)
+        else:
+            return None
 
     def get_creation_date(self):
+        if self.file_stat:
+            return self.file_stat[stat.ST_SIZE]
+        else:
+            return None
         return self.file_stat[stat.ST_CTIME]
 
     def get_display_name(self):
         return self.name
 
     def get_etag(self):
-        return util.get_etag(self._file_path)
+        if os.path.isfile(self._file_path):
+            return util.get_etag(self._file_path)
+        else:
+            return None
 
     def get_last_modified(self):
-        return self.file_stat[stat.ST_MTIME]
+        if self.file_stat:
+            return self.file_stat[stat.ST_MTIME]
+        else:
+            return None
 
     def support_etag(self):
         return True
@@ -48,6 +72,7 @@ class ISSMDAVNonCollection(DAVNonCollection):
         """Open content as a stream for reading.
         See DAVResource.get_content()
         """
+        print(f"get_content")
         assert not self.is_collection
         # GC issue 28, 57: if we open in text mode, \r\n is converted to one byte.
         # So the file size reported by Windows differs from len(..), thus
@@ -58,18 +83,27 @@ class ISSMDAVNonCollection(DAVNonCollection):
         """Open content as a stream for writing.
         See DAVResource.begin_write()
         """
+        print(f"begin_write {self.provider.is_readonly()} --- {os.path.isfile(self._file_path)}")
         assert not self.is_collection
-        if self.provider.readonly:
+        if self.provider.is_readonly():
             raise DAVError(HTTP_FORBIDDEN)
         # _logger.debug("begin_write: {}, {}".format(self._file_path, "wb"))
         # GC issue 57: always store as binary
         return open(self._file_path, "wb", BUFFER_SIZE)
 
+    def end_write(self, with_errors):
+        """Called when PUT has finished writing.
+        This is only a notification. that MAY be handled.
+        """
+        print(f"end_write {self._file_path} -- {os.path.getsize(self._file_path)}")
+        pass
+
     def delete(self):
         """Remove this resource or collection (recursive).
         See DAVResource.delete()
         """
-        if self.provider.readonly:
+        print(f"delete")
+        if self.provider.is_readonly():
             raise DAVError(HTTP_FORBIDDEN)
         os.unlink(self._file_path)
         self.remove_all_properties(True)
@@ -77,7 +111,8 @@ class ISSMDAVNonCollection(DAVNonCollection):
 
     def copy_move_single(self, dest_path, is_move):
         """See DAVResource.copy_move_single() """
-        if self.provider.readonly:
+        print(f"copy_move_single")
+        if self.provider.is_readonly():
             raise DAVError(HTTP_FORBIDDEN)
         fpDest = self.provider._loc_to_file_path(dest_path, self.environ)
         assert not util.is_equal_or_child_uri(self.path, dest_path)
@@ -131,3 +166,9 @@ class ISSMDAVNonCollection(DAVNonCollection):
         if not dry_run:
             os.utime(self._file_path, (secs, secs))
         return True
+
+    def handle_move(self, dest_path):
+        path, function_name = os.path.split(dest_path.replace('/' + self.name,""))
+        print(f"handle_move: {function_name}")
+
+        return perform_function(function_name, self.project['id'], self.case['id'], self.environ["wsgidav.auth.user"])
